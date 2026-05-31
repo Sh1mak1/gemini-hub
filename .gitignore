@@ -1,0 +1,20 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local env (secrets)
+.env
+.env.*
+!.env.example
+
+# Personal notes (local only)
+work-logs/
+specifications/
+
+# ngrok local config
+.ngrok2/
+ngrok.yml
