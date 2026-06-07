@@ -73,7 +73,7 @@ class ProcessSlackEventJob implements ShouldQueue
             'status' => TaskStatus::Pending,
         ]);
 
-        $notification->notifyTaskCreated($task);
+        $notification->notifyTaskCreated($task, sourceChannelId: $event->channelId);
 
         OperationLogger::info('slack.job', 'task_created', [
             'task_id' => $task->id,

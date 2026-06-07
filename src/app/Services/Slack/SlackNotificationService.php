@@ -3,7 +3,7 @@
 namespace App\Services\Slack;
 
 use App\Models\Task;
-use Illuminate\Support\Facades\Log;
+use App\Support\OperationLogger;
 
 class SlackNotificationService
 {
@@ -12,13 +12,15 @@ class SlackNotificationService
         private SlackChannelResolver $channelResolver,
     ) {}
 
-    public function notifyTaskCreated(Task $task): void
+    public function notifyTaskCreated(Task $task, ?string $sourceChannelId = null): void
     {
-        $channelId = $this->channelResolver->resolveForCategory($task->category);
+        $channelId = $this->channelResolver->resolveForCategory($task->category)
+            ?? $sourceChannelId;
 
         if ($channelId === null) {
-            Log::warning('Slack notification channel not found.', [
+            OperationLogger::warning('slack.notify', 'channel_not_found', [
                 'category' => $task->category->value,
+                'task_id' => $task->id,
             ]);
 
             return;
@@ -36,5 +38,12 @@ class SlackNotificationService
         ]);
 
         $this->slackApi->postMessage($channelId, $message);
+
+        OperationLogger::info('slack.notify', 'sent', [
+            'task_id' => $task->id,
+            'channel_id' => $channelId,
+            'category' => $task->category->value,
+            'used_source_channel' => $sourceChannelId !== null && $channelId === $sourceChannelId,
+        ]);
     }
 }
