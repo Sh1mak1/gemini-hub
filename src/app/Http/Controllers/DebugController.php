@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\Database\DatabaseTableBrowser;
 use App\Services\Operations\OperationLogReader;
+use App\Support\DisplayTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,12 +18,13 @@ class DebugController extends Controller
         $operation = $request->string('operation')->toString() ?: null;
         $level = $request->string('level')->toString() ?: null;
         $availableDates = $reader->availableDates();
-        $selectedDate = $date ?: ($availableDates[0] ?? today()->toDateString());
+        $selectedDate = $date ?: ($availableDates[0] ?? DisplayTime::today()->toDateString());
 
         return Inertia::render('Debug/Logs', [
             'entries' => $reader->read($selectedDate, operation: $operation, level: $level),
             'availableDates' => $availableDates,
             'operations' => $reader->knownOperations($selectedDate),
+            'displayTimezone' => DisplayTime::timezone(),
             'filters' => [
                 'date' => $selectedDate,
                 'operation' => $operation ?? '',
@@ -37,11 +39,12 @@ class DebugController extends Controller
         $operation = $request->string('operation')->toString() ?: null;
         $level = $request->string('level')->toString() ?: null;
         $availableDates = $reader->availableDates();
-        $selectedDate = $date ?: ($availableDates[0] ?? today()->toDateString());
+        $selectedDate = $date ?: ($availableDates[0] ?? DisplayTime::today()->toDateString());
 
         return response()->json([
             'entries' => $reader->read($selectedDate, operation: $operation, level: $level),
             'operations' => $reader->knownOperations($selectedDate),
+            'displayTimezone' => DisplayTime::timezone(),
             'filters' => [
                 'date' => $selectedDate,
                 'operation' => $operation ?? '',

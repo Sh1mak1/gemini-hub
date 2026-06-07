@@ -46,6 +46,7 @@ export default function Logs({
     entries: initialEntries,
     availableDates,
     operations: initialOperations,
+    displayTimezone = 'Asia/Tokyo',
     filters,
 }) {
     const [entries, setEntries] = useState(initialEntries);
@@ -207,6 +208,8 @@ export default function Logs({
                         <p className="mt-4 text-xs text-slate-500">
                             最新 {entries.length} 件
                             {autoRefresh && '（自動更新ON）'}
+                            {' · '}
+                            表示時刻: {displayTimezone}
                             {' · '}
                             最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
                         </p>

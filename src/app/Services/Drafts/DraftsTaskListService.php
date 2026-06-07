@@ -5,6 +5,7 @@ namespace App\Services\Drafts;
 use App\Data\DraftsTaskSnapshot;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use App\Support\DisplayTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -33,7 +34,7 @@ class DraftsTaskListService
             ->pending()
             ->where(function (Builder $query): void {
                 $query->whereNull('due_date')
-                    ->orWhereDate('due_date', '<=', today());
+                    ->orWhereDate('due_date', '<=', DisplayTime::today());
             })
             ->orderByRaw('due_date is null')
             ->orderBy('due_date')

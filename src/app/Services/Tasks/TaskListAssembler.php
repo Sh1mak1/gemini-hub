@@ -4,6 +4,7 @@ namespace App\Services\Tasks;
 
 use App\Models\FallbackTask;
 use App\Models\Task;
+use App\Support\DisplayTime;
 use Illuminate\Support\Collection;
 
 class TaskListAssembler
@@ -92,11 +93,11 @@ class TaskListAssembler
         $completed = Task::completed()->count() + FallbackTask::completed()->count();
         $overdue = Task::pending()
             ->whereNotNull('due_date')
-            ->whereDate('due_date', '<', today())
+            ->whereDate('due_date', '<', DisplayTime::today())
             ->count()
             + FallbackTask::pending()
                 ->whereNotNull('due_date')
-                ->whereDate('due_date', '<', today())
+                ->whereDate('due_date', '<', DisplayTime::today())
                 ->count();
 
         return [
@@ -145,17 +146,17 @@ class TaskListAssembler
      */
     public function formatTask(Task|FallbackTask $task, string $source): array
     {
-        $startDate = $task->created_at->startOfDay();
-        $dueDate = $task->due_date?->startOfDay();
-        $timelineEnd = $dueDate ?? $startDate->copy()->addDays(7);
+        $startDate = DisplayTime::fromModelTimestamp($task, 'created_at')?->startOfDay();
+        $dueDate = $task->due_date?->copy()->startOfDay();
+        $timelineEnd = $dueDate ?? $startDate?->copy()->addDays(7);
 
         return [
             'id' => $task->id,
             'source' => $source,
             'title' => $task->title,
             'due_date' => $dueDate?->format('Y-m-d'),
-            'start_date' => $startDate->format('Y-m-d'),
-            'timeline_end' => $timelineEnd->format('Y-m-d'),
+            'start_date' => $startDate?->format('Y-m-d'),
+            'timeline_end' => $timelineEnd?->format('Y-m-d'),
             'category' => $task->category->value,
             'category_label' => $task->category->label(),
             'location' => $task->location,
@@ -163,7 +164,7 @@ class TaskListAssembler
             'status_label' => $task->status->label(),
             'is_overdue' => $task->status->value === 'pending'
                 && $dueDate !== null
-                && $dueDate->lt(today()),
+                && $dueDate->lt(DisplayTime::today()),
             'updated_at' => $task->updated_at?->toIso8601String(),
         ];
     }

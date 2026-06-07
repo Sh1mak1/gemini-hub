@@ -2,6 +2,7 @@
 
 namespace App\Services\Operations;
 
+use App\Support\DisplayTime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
@@ -13,26 +14,26 @@ class OperationLogReader
      */
     public function availableDates(): array
     {
-        $files = File::glob(storage_path('logs/operations-*.log')) ?: [];
+        $dates = [];
 
-        $dates = collect($files)
-            ->map(function (string $path): ?string {
-                if (preg_match('/operations-(\d{4}-\d{2}-\d{2})\.log$/', $path, $matches) !== 1) {
-                    return null;
+        foreach ($this->logFiles() as $path) {
+            foreach ($this->tailLines($path, 2000) as $line) {
+                $entry = $this->parseLine($line);
+
+                if ($entry !== null) {
+                    $dates[substr($entry['timestamp'], 0, 10)] = true;
                 }
+            }
+        }
 
-                return $matches[1];
-            })
-            ->filter()
+        if ($dates === []) {
+            return [DisplayTime::today()->toDateString()];
+        }
+
+        return collect(array_keys($dates))
             ->sortDesc()
             ->values()
             ->all();
-
-        if ($dates === [] && File::exists(storage_path('logs/operations.log'))) {
-            return [today()->toDateString()];
-        }
-
-        return $dates;
     }
 
     /**
@@ -51,12 +52,10 @@ class OperationLogReader
         ?string $operation = null,
         ?string $level = null,
     ): array {
-        $path = $this->resolveLogPath($date);
-        $lines = $this->tailLines($path, $limit * 3);
+        $selectedDate = $date ?: DisplayTime::today()->toDateString();
 
-        return collect($lines)
-            ->map(fn (string $line) => $this->parseLine($line))
-            ->filter()
+        return collect($this->collectEntries($limit * 3))
+            ->filter(fn (array $entry) => str_starts_with($entry['timestamp'], $selectedDate))
             ->when($operation !== null && $operation !== '', fn (Collection $entries) => $entries->filter(
                 fn (array $entry) => $entry['operation'] === $operation,
             ))
@@ -82,17 +81,39 @@ class OperationLogReader
             ->all();
     }
 
-    private function resolveLogPath(?string $date): string
+    /**
+     * @return list<array{
+     *     timestamp: string,
+     *     level: string,
+     *     operation: string|null,
+     *     step: string|null,
+     *     message: string,
+     *     context: array<string, mixed>
+     * }>
+     */
+    private function collectEntries(int $maxLines): array
     {
-        $date = $date ?: today()->toDateString();
+        $lines = [];
 
-        $datedPath = storage_path("logs/operations-{$date}.log");
-
-        if (File::exists($datedPath)) {
-            return $datedPath;
+        foreach ($this->logFiles()->take(3) as $path) {
+            $lines = array_merge($lines, $this->tailLines($path, $maxLines));
         }
 
-        return storage_path('logs/operations.log');
+        return collect($lines)
+            ->map(fn (string $line) => $this->parseLine($line))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function logFiles(): Collection
+    {
+        $files = File::glob(storage_path('logs/operations-*.log')) ?: [];
+
+        return collect($files)->sortDesc()->values();
     }
 
     /**
@@ -139,7 +160,9 @@ class OperationLogReader
             return null;
         }
 
-        $timestamp = Carbon::parse($matches[1])->toDateTimeString();
+        $timestamp = Carbon::parse($matches[1], $this->logTimestampTimezone())
+            ->timezone(DisplayTime::timezone())
+            ->format('Y-m-d H:i:s');
         $level = strtolower($matches[2]);
         $payload = $matches[3];
         $context = [];
@@ -166,5 +189,10 @@ class OperationLogReader
             'message' => $payload,
             'context' => $context,
         ];
+    }
+
+    private function logTimestampTimezone(): string
+    {
+        return (string) config('logging.operations_log_timezone', 'UTC');
     }
 }

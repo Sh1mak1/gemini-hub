@@ -21,7 +21,7 @@ class DebugPagesTest extends TestCase
     public function test_authenticated_user_can_view_operation_logs(): void
     {
         $user = User::factory()->create();
-        $logPath = storage_path('logs/operations-'.today()->toDateString().'.log');
+        $logPath = storage_path('logs/operations-2026-06-07.log');
 
         File::ensureDirectoryExists(dirname($logPath));
         File::put(
@@ -30,19 +30,20 @@ class DebugPagesTest extends TestCase
         );
 
         $this->actingAs($user)
-            ->get(route('debug.logs'))
+            ->get(route('debug.logs', ['date' => '2026-06-07']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Debug/Logs')
                 ->has('entries', 1)
                 ->where('entries.0.operation', 'slack.job')
+                ->where('entries.0.timestamp', '2026-06-07 21:00:00')
             );
     }
 
     public function test_authenticated_user_can_fetch_log_entries_as_json(): void
     {
         $user = User::factory()->create();
-        $logPath = storage_path('logs/operations-'.today()->toDateString().'.log');
+        $logPath = storage_path('logs/operations-2026-06-07.log');
 
         File::ensureDirectoryExists(dirname($logPath));
         File::put(
@@ -51,9 +52,10 @@ class DebugPagesTest extends TestCase
         );
 
         $this->actingAs($user)
-            ->getJson(route('debug.logs.entries'))
+            ->getJson(route('debug.logs.entries', ['date' => '2026-06-07']))
             ->assertOk()
-            ->assertJsonPath('entries.0.operation', 'gemini.extract');
+            ->assertJsonPath('entries.0.operation', 'gemini.extract')
+            ->assertJsonPath('entries.0.timestamp', '2026-06-07 21:00:00');
     }
 
     public function test_authenticated_user_can_view_database_tables(): void

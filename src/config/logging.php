@@ -134,6 +134,18 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
+
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Operations Log Timestamp Timezone
+    |--------------------------------------------------------------------------
+    |
+    | ログファイルに書き込まれた時刻のタイムゾーン。本番は UTC で記録されている。
+    |
+    */
+
+    'operations_log_timezone' => env('LOG_OPERATIONS_LOG_TIMEZONE', 'UTC'),
 
 ];
