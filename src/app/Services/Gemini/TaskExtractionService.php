@@ -55,14 +55,33 @@ class TaskExtractionService
 
     private function buildPrompt(string $inputText): string
     {
+        $now = now(config('gemini.reference_timezone', 'Asia/Tokyo'));
+        $referenceContext = $this->formatReferenceDateTime($now);
+
         return <<<PROMPT
 以下のテキストからタスク情報を抽出してください。
 推測で情報を作らず、テキストに明示されていない項目は null にしてください。
-期日は YYYY-MM-DD 形式で返してください。年が不明な場合は今年として解釈してください。
+期日は YYYY-MM-DD 形式で返してください。
+
+{$referenceContext}
+
+「明日」「来週の金曜」「今月末」などの相対日付は、上記の現在日時を基準に解釈してください。
 
 入力テキスト:
 {$inputText}
 PROMPT;
+    }
+
+    private function formatReferenceDateTime(\Illuminate\Support\Carbon $now): string
+    {
+        $timezone = $now->timezoneName;
+        $weekday = ['日', '月', '火', '水', '木', '金', '土'][$now->dayOfWeek];
+
+        return <<<CONTEXT
+現在日時（基準）: {$now->format('Y-m-d H:i')} ({$timezone})
+今日の日付: {$now->format('Y-m-d')}
+曜日: {$weekday}曜日
+CONTEXT;
     }
 
     /**

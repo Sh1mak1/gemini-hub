@@ -13,4 +13,6 @@ return [
 
     'timeout' => (int) env('GEMINI_TIMEOUT', 60),
 
+    'reference_timezone' => env('GEMINI_REFERENCE_TIMEZONE', 'Asia/Tokyo'),
+
 ];
