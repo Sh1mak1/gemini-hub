@@ -2,6 +2,7 @@
 
 namespace App\Services\Slack;
 
+use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Support\OperationLogger;
 
@@ -12,7 +13,7 @@ class SlackNotificationService
         private SlackChannelResolver $channelResolver,
     ) {}
 
-    public function notifyTaskCreated(Task $task, ?string $sourceChannelId = null): void
+    public function notifyTaskCreated(Task|FallbackTask $task, ?string $sourceChannelId = null): void
     {
         $channelId = $this->channelResolver->resolveForCategory($task->category)
             ?? $sourceChannelId;
@@ -21,6 +22,7 @@ class SlackNotificationService
             OperationLogger::warning('slack.notify', 'channel_not_found', [
                 'category' => $task->category->value,
                 'task_id' => $task->id,
+                'task_source' => $task instanceof FallbackTask ? 'fallback' : 'ai',
             ]);
 
             return;
@@ -28,9 +30,12 @@ class SlackNotificationService
 
         $dueDate = $task->due_date?->format('Y-m-d') ?? '未設定';
         $location = $task->location ?? '未設定';
+        $header = $task instanceof FallbackTask
+            ? '⚠️ タスクを登録しました（AI未解析）'
+            : '✅ タスクを登録しました';
 
         $message = implode("\n", [
-            '✅ タスクを登録しました',
+            $header,
             "• タイトル: {$task->title}",
             "• 期日: {$dueDate}",
             "• カテゴリ: {$task->category->label()}",
@@ -41,6 +46,7 @@ class SlackNotificationService
 
         OperationLogger::info('slack.notify', 'sent', [
             'task_id' => $task->id,
+            'task_source' => $task instanceof FallbackTask ? 'fallback' : 'ai',
             'channel_id' => $channelId,
             'category' => $task->category->value,
             'used_source_channel' => $sourceChannelId !== null && $channelId === $sourceChannelId,

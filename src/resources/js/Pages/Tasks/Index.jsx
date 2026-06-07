@@ -20,10 +20,14 @@ function StatCard({ label, value, accent }) {
     );
 }
 
+function taskKey(task) {
+    return `${task.source}-${task.id}`;
+}
+
 function TaskCard({ task, onComplete, completingId }) {
     const categoryStyle =
         CATEGORY_STYLES[task.category] ?? CATEGORY_STYLES.other;
-    const isCompleting = completingId === task.id;
+    const isCompleting = completingId === taskKey(task);
 
     return (
         <article className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
@@ -52,7 +56,7 @@ function TaskCard({ task, onComplete, completingId }) {
                     {task.status === 'pending' && onComplete && (
                         <button
                             type="button"
-                            onClick={() => onComplete(task.id)}
+                            onClick={() => onComplete(task.source, task.id)}
                             disabled={isCompleting}
                             className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
@@ -105,7 +109,7 @@ function TaskList({ tasks, emptyMessage, onComplete, completingId }) {
         <div className="space-y-3">
             {tasks.map((task) => (
                 <TaskCard
-                    key={task.id}
+                    key={taskKey(task)}
                     task={task}
                     onComplete={onComplete}
                     completingId={completingId}
@@ -119,10 +123,10 @@ export default function Index({ pendingTasks, completedTasks, timelineTasks, sta
     const [activeTab, setActiveTab] = useState('pending');
     const [completingId, setCompletingId] = useState(null);
 
-    const completeTask = (taskId) => {
-        setCompletingId(taskId);
+    const completeTask = (source, taskId) => {
+        setCompletingId(`${source}-${taskId}`);
         router.patch(
-            route('tasks.complete', taskId),
+            route('tasks.complete', { source, id: taskId }),
             {},
             {
                 preserveScroll: true,

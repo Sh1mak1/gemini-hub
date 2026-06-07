@@ -170,7 +170,7 @@ export default function TaskTimeline({ tasks }) {
 
                                 return (
                                     <div
-                                        key={task.id}
+                                        key={`${task.source}-${task.id}`}
                                         className="border-b border-slate-100 px-4 py-4 last:border-b-0"
                                     >
                                         <div className="flex items-start gap-2">
@@ -222,7 +222,7 @@ export default function TaskTimeline({ tasks }) {
 
                                 return (
                                     <div
-                                        key={task.id}
+                                        key={`${task.source}-${task.id}`}
                                         className="border-b border-slate-100 py-4 last:border-b-0"
                                     >
                                         <div className="relative h-8 rounded-lg bg-white/80 ring-1 ring-slate-200/80">

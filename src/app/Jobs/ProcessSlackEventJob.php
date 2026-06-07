@@ -3,12 +3,11 @@
 namespace App\Jobs;
 
 use App\Data\SlackIncomingEvent;
-use App\Enums\TaskStatus;
-use App\Models\Task;
 use App\Services\Gemini\TaskExtractionService;
 use App\Services\Slack\SlackApiClient;
 use App\Services\Slack\SlackEventExtractor;
 use App\Services\Slack\SlackNotificationService;
+use App\Services\Tasks\TaskPersistenceService;
 use App\Support\OperationLogger;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -31,6 +30,7 @@ class ProcessSlackEventJob implements ShouldQueue
         SlackEventExtractor $extractor,
         SlackApiClient $slackApi,
         TaskExtractionService $taskExtraction,
+        TaskPersistenceService $taskPersistence,
         SlackNotificationService $notification,
     ): void {
         $event = $extractor->extract($this->payload);
@@ -57,28 +57,26 @@ class ProcessSlackEventJob implements ShouldQueue
             'input_preview' => mb_substr($inputText, 0, 100),
         ]);
 
-        $extracted = $taskExtraction->extract($inputText);
+        $outcome = $taskExtraction->extract($inputText);
 
-        if ($extracted === null) {
-            OperationLogger::warning('slack.job', 'extract_failed', [
+        if ($outcome === null) {
+            OperationLogger::warning('slack.job', 'empty_input', [
                 'channel_id' => $event->channelId,
-                'input_preview' => mb_substr($inputText, 0, 100),
             ]);
 
             return;
         }
 
-        $task = Task::create([
-            ...$extracted->toTaskAttributes(),
-            'status' => TaskStatus::Pending,
-        ]);
+        $persisted = $taskPersistence->persist($outcome);
 
-        $notification->notifyTaskCreated($task, sourceChannelId: $event->channelId);
+        $notification->notifyTaskCreated($persisted->model, sourceChannelId: $event->channelId);
 
         OperationLogger::info('slack.job', 'task_created', [
-            'task_id' => $task->id,
-            'title' => $task->title,
-            'category' => $task->category->value,
+            'task_id' => $persisted->id,
+            'task_source' => $persisted->source,
+            'title' => $persisted->model->title,
+            'category' => $persisted->model->category->value,
+            'used_ai' => $persisted->isAi(),
         ]);
     }
 

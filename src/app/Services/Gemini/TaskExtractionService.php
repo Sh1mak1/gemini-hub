@@ -3,6 +3,7 @@
 namespace App\Services\Gemini;
 
 use App\Data\ExtractedTaskData;
+use App\Data\TaskExtractionOutcome;
 use App\Support\OperationLogger;
 use Throwable;
 
@@ -12,7 +13,7 @@ class TaskExtractionService
         private GeminiClient $gemini,
     ) {}
 
-    public function extract(string $inputText): ?ExtractedTaskData
+    public function extract(string $inputText): ?TaskExtractionOutcome
     {
         $inputText = trim($inputText);
 
@@ -30,11 +31,11 @@ class TaskExtractionService
             $task = ExtractedTaskData::fromArray($result);
 
             if ($task->title === '') {
-                OperationLogger::warning('gemini.extract', 'empty_title', [
+                OperationLogger::warning('gemini.extract', 'empty_title_fallback', [
                     'input_preview' => mb_substr($inputText, 0, 100),
                 ]);
 
-                return null;
+                return TaskExtractionOutcome::fromFallback($inputText);
             }
 
             OperationLogger::info('gemini.extract', 'success', [
@@ -42,14 +43,14 @@ class TaskExtractionService
                 'category' => $task->category->value,
             ]);
 
-            return $task;
+            return TaskExtractionOutcome::fromAi($task);
         } catch (Throwable $exception) {
-            OperationLogger::error('gemini.extract', 'failed', [
+            OperationLogger::warning('gemini.extract', 'fallback', [
                 'input_preview' => mb_substr($inputText, 0, 100),
                 'error' => $exception->getMessage(),
             ]);
 
-            return null;
+            return TaskExtractionOutcome::fromFallback($inputText);
         }
     }
 

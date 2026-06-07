@@ -134,7 +134,6 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
-
     ],
 
 ];

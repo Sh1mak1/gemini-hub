@@ -2,19 +2,19 @@
 
 namespace App\Services\Drafts;
 
-use App\Enums\TaskStatus;
-use App\Models\Task;
 use App\Services\Gemini\TaskExtractionService;
+use App\Services\Tasks\TaskPersistenceService;
 use App\Support\OperationLogger;
 
 class DraftsTaskCreateService
 {
     public function __construct(
         private TaskExtractionService $taskExtraction,
+        private TaskPersistenceService $taskPersistence,
     ) {}
 
     /**
-     * @return list<int> Created task IDs
+     * @return list<string> Created task references (`ai:1`, `fallback:2`, ...)
      */
     public function createFromInput(string $input): array
     {
@@ -24,33 +24,27 @@ class DraftsTaskCreateService
             return [];
         }
 
-        $createdIds = [];
+        $createdRefs = [];
 
         foreach ($lines as $line) {
-            $extracted = $this->taskExtraction->extract($line);
+            $outcome = $this->taskExtraction->extract($line);
 
-            if ($extracted === null) {
-                OperationLogger::warning('drafts.add', 'line_skipped', [
-                    'input_preview' => mb_substr($line, 0, 100),
-                ]);
-
+            if ($outcome === null) {
                 continue;
             }
 
-            $task = Task::create([
-                ...$extracted->toTaskAttributes(),
-                'status' => TaskStatus::Pending,
-            ]);
-
-            $createdIds[] = $task->id;
+            $persisted = $this->taskPersistence->persist($outcome);
+            $createdRefs[] = "{$persisted->source}:{$persisted->id}";
 
             OperationLogger::info('drafts.add', 'task_created', [
-                'task_id' => $task->id,
-                'title' => $task->title,
+                'task_id' => $persisted->id,
+                'task_source' => $persisted->source,
+                'title' => $persisted->model->title,
+                'used_ai' => $persisted->isAi(),
             ]);
         }
 
-        return $createdIds;
+        return $createdRefs;
     }
 
     /**
