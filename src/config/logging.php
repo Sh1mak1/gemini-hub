@@ -130,7 +130,7 @@ return [
         'operations' => [
             'driver' => 'daily',
             'path' => storage_path('logs/operations.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => 'debug',
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],

@@ -30,6 +30,18 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     タスク
                                 </NavLink>
+                                <NavLink
+                                    href={route('debug.logs')}
+                                    active={route().current('debug.logs')}
+                                >
+                                    ログ
+                                </NavLink>
+                                <NavLink
+                                    href={route('debug.database')}
+                                    active={route().current('debug.database')}
+                                >
+                                    DB
+                                </NavLink>
                             </div>
                         </div>
 
@@ -133,6 +145,18 @@ export default function AuthenticatedLayout({ header, children }) {
                             active={route().current('tasks.index')}
                         >
                             タスク
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('debug.logs')}
+                            active={route().current('debug.logs')}
+                        >
+                            ログ
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('debug.database')}
+                            active={route().current('debug.database')}
+                        >
+                            DB
                         </ResponsiveNavLink>
                     </div>
 
