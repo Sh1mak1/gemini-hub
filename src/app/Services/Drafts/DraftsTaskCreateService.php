@@ -5,7 +5,7 @@ namespace App\Services\Drafts;
 use App\Enums\TaskStatus;
 use App\Models\Task;
 use App\Services\Gemini\TaskExtractionService;
-use Illuminate\Support\Facades\Log;
+use App\Support\OperationLogger;
 
 class DraftsTaskCreateService
 {
@@ -30,7 +30,7 @@ class DraftsTaskCreateService
             $extracted = $this->taskExtraction->extract($line);
 
             if ($extracted === null) {
-                Log::warning('Drafts task creation skipped.', [
+                OperationLogger::warning('drafts.add', 'line_skipped', [
                     'input_preview' => mb_substr($line, 0, 100),
                 ]);
 
@@ -44,7 +44,7 @@ class DraftsTaskCreateService
 
             $createdIds[] = $task->id;
 
-            Log::info('Task created from Drafts.', [
+            OperationLogger::info('drafts.add', 'task_created', [
                 'task_id' => $task->id,
                 'title' => $task->title,
             ]);

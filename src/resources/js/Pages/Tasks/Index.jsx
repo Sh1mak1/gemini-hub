@@ -1,6 +1,6 @@
 import TaskTimeline from '@/Components/TaskTimeline';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 const CATEGORY_STYLES = {
@@ -20,9 +20,10 @@ function StatCard({ label, value, accent }) {
     );
 }
 
-function TaskCard({ task }) {
+function TaskCard({ task, onComplete, completingId }) {
     const categoryStyle =
         CATEGORY_STYLES[task.category] ?? CATEGORY_STYLES.other;
+    const isCompleting = completingId === task.id;
 
     return (
         <article className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
@@ -46,9 +47,19 @@ function TaskCard({ task }) {
                         )}
                     </div>
                 </div>
-                <span className="shrink-0 text-xs text-slate-400">
-                    #{task.id}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="text-xs text-slate-400">#{task.id}</span>
+                    {task.status === 'pending' && onComplete && (
+                        <button
+                            type="button"
+                            onClick={() => onComplete(task.id)}
+                            disabled={isCompleting}
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isCompleting ? '処理中…' : '完了'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
@@ -81,7 +92,7 @@ function TaskCard({ task }) {
     );
 }
 
-function TaskList({ tasks, emptyMessage }) {
+function TaskList({ tasks, emptyMessage, onComplete, completingId }) {
     if (!tasks.length) {
         return (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-slate-500">
@@ -93,7 +104,12 @@ function TaskList({ tasks, emptyMessage }) {
     return (
         <div className="space-y-3">
             {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard
+                    key={task.id}
+                    task={task}
+                    onComplete={onComplete}
+                    completingId={completingId}
+                />
             ))}
         </div>
     );
@@ -101,6 +117,19 @@ function TaskList({ tasks, emptyMessage }) {
 
 export default function Index({ pendingTasks, completedTasks, timelineTasks, stats }) {
     const [activeTab, setActiveTab] = useState('pending');
+    const [completingId, setCompletingId] = useState(null);
+
+    const completeTask = (taskId) => {
+        setCompletingId(taskId);
+        router.patch(
+            route('tasks.complete', taskId),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setCompletingId(null),
+            },
+        );
+    };
 
     return (
         <AuthenticatedLayout
@@ -174,6 +203,8 @@ export default function Index({ pendingTasks, completedTasks, timelineTasks, sta
                                 <TaskList
                                     tasks={pendingTasks}
                                     emptyMessage="未完了のタスクはありません"
+                                    onComplete={completeTask}
+                                    completingId={completingId}
                                 />
                             ) : (
                                 <TaskList

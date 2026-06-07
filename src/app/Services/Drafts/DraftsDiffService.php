@@ -6,7 +6,7 @@ use App\Data\DraftsTaskSnapshot;
 use App\Enums\TaskStatus;
 use App\Models\Task;
 use App\Services\Gemini\GeminiClient;
-use Illuminate\Support\Facades\Log;
+use App\Support\OperationLogger;
 use Throwable;
 
 class DraftsDiffService
@@ -46,8 +46,8 @@ class DraftsDiffService
 
             return $previous->taskIdsForLines($normalizedLineNumbers);
         } catch (Throwable $exception) {
-            Log::error('Drafts diff detection failed.', [
-                'message' => $exception->getMessage(),
+            OperationLogger::error('drafts.sync', 'diff_failed', [
+                'error' => $exception->getMessage(),
             ]);
 
             return [];

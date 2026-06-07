@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Support\OperationLogger;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,6 +54,29 @@ class TaskController extends Controller
                     ->count(),
             ],
         ]);
+    }
+
+    public function complete(Task $task): RedirectResponse
+    {
+        if ($task->isCompleted()) {
+            OperationLogger::info('task.complete', 'already_completed', [
+                'task_id' => $task->id,
+                'source' => 'web',
+            ]);
+
+            return back();
+        }
+
+        $task->markCompleted();
+
+        OperationLogger::info('task.complete', 'completed', [
+            'task_id' => $task->id,
+            'title' => $task->title,
+            'category' => $task->category->value,
+            'source' => 'web',
+        ]);
+
+        return back();
     }
 
     /**

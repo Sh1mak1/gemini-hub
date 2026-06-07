@@ -21,6 +21,7 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

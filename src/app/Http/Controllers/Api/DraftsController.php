@@ -7,6 +7,7 @@ use App\Services\Drafts\DraftsDiffService;
 use App\Services\Drafts\DraftsTaskCache;
 use App\Services\Drafts\DraftsTaskCreateService;
 use App\Services\Drafts\DraftsTaskListService;
+use App\Support\OperationLogger;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -15,6 +16,10 @@ class DraftsController extends Controller
     public function show(DraftsTaskListService $taskListService): Response
     {
         $text = $taskListService->fetchAndCache();
+
+        OperationLogger::info('drafts.fetch', 'success', [
+            'line_count' => $text === '' ? 0 : substr_count($text, "\n") + 1,
+        ]);
 
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
@@ -35,6 +40,11 @@ class DraftsController extends Controller
         }
 
         $createdIds = $createService->createFromInput($input);
+
+        OperationLogger::info('drafts.add', $createdIds === [] ? 'no_tasks_created' : 'success', [
+            'created_ids' => $createdIds,
+            'input_preview' => mb_substr($input, 0, 100),
+        ]);
 
         if ($createdIds === []) {
             return response(
@@ -69,6 +79,8 @@ class DraftsController extends Controller
         $previousSnapshot = $cache->get();
 
         if ($previousSnapshot === null) {
+            OperationLogger::warning('drafts.sync', 'no_snapshot', []);
+
             return response(
                 "前回のタスクリストが見つかりません。先に GET /api/drafts/tasks で一覧を取得してください。\n",
                 409,
@@ -77,7 +89,12 @@ class DraftsController extends Controller
         }
 
         $completedTaskIds = $diffService->detectCompletedTaskIds($previousSnapshot, $updatedText);
-        $diffService->markTasksCompleted($completedTaskIds);
+        $markedIds = $diffService->markTasksCompleted($completedTaskIds);
+
+        OperationLogger::info('drafts.sync', 'completed', [
+            'detected_ids' => $completedTaskIds,
+            'marked_ids' => $markedIds,
+        ]);
 
         $text = $taskListService->fetchAndCache();
 

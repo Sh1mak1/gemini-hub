@@ -2,9 +2,9 @@
 
 namespace App\Services\Gemini;
 
+use App\Support\OperationLogger;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class GeminiClient
@@ -43,10 +43,10 @@ class GeminiClient
                 ->throw()
                 ->json();
         } catch (RequestException $exception) {
-            Log::error('Gemini API request failed.', [
+            OperationLogger::error('gemini.api', 'request_failed', [
                 'model' => $model,
                 'status' => $exception->response?->status(),
-                'body' => $exception->response?->body(),
+                'body_preview' => mb_substr((string) $exception->response?->body(), 0, 200),
             ]);
 
             throw new RuntimeException('Gemini API request failed.', previous: $exception);
