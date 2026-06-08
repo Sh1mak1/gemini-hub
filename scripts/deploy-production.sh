@@ -28,31 +28,64 @@ needs() {
   echo "$CHANGED" | grep -qE "$1"
 }
 
-if needs '^src/composer\.(json|lock)'; then
-  echo "==> composer install"
-  docker compose exec -T app composer install --no-dev --optimize-autoloader
+run() {
+  echo "==> $*"
+  "$@"
+}
+
+# --- 依存関係 ---
+
+if needs '^src/composer\.(json|lock)|^docker/php/'; then
+  run docker compose exec -T app composer install --no-dev --optimize-autoloader
 fi
 
-echo "==> migrate"
-docker compose exec -T app php artisan migrate --force
+# --- Docker 構成 ---
 
-if needs '^src/resources/|^src/package(-lock)?\.json|^src/vite\.config'; then
-  echo "==> npm build"
-  docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
+if needs '^docker-compose\.yml|^docker/'; then
+  run docker compose up -d
+fi
+
+# --- DB ---
+
+run docker compose exec -T app php artisan migrate --force
+
+# --- フロントエンド ---
+
+if needs '^src/resources/|^src/package(-lock)?\.json|^src/vite\.config|^src/tailwind\.config|^src/postcss\.config'; then
+  run docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
+fi
+
+# --- キャッシュクリア（古いキャッシュが残る変更） ---
+
+if needs '^src/config/|^src/routes/|^src/bootstrap/|^src/resources/views/|^src/app/Providers/'; then
+  run docker compose exec -T app php artisan optimize:clear
+fi
+
+# --- Laravel キャッシュ再生成（毎回） ---
+
+run docker compose exec -T app php artisan config:cache
+run docker compose exec -T app php artisan route:cache
+
+if needs '^src/resources/views/|^src/app/View/'; then
+  run docker compose exec -T app php artisan view:cache
+fi
+
+# --- プロセス再起動 ---
+
+if needs '^src/app/|^src/config/|^src/routes/|^src/bootstrap/|^src/database/|^docker/php/'; then
+  run docker compose restart app
 fi
 
 if needs '^docker/nginx/'; then
-  echo "==> reload nginx"
-  docker compose up -d web
+  run docker compose up -d web
 fi
 
-echo "==> cache config & routes"
-docker compose exec -T app php artisan config:cache
-docker compose exec -T app php artisan route:cache
+run systemctl restart laravel-queue
 
-echo "==> restart queue worker"
-systemctl restart laravel-queue
+# --- 確認 ---
 
-echo "==> health check"
-curl -fsS "$APP_URL/up" >/dev/null
+run docker compose ps
+run systemctl is-active laravel-queue
+run curl -fsS "$APP_URL/up" >/dev/null
+
 echo "==> Deploy OK ($NEW)"

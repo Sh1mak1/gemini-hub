@@ -77,6 +77,19 @@ git commit → git push origin main → GitHub Actions → scripts/deploy-produc
 2. `main` に commit & push する
 3. GitHub Actions の **Deploy to production** 成功を確認して報告する
 
+本番反映内容（`scripts/deploy-production.sh` が変更種別に応じて実行）:
+
+| 変更 | 自動実行 |
+|------|----------|
+| フロント（resources, vite, tailwind 等） | `npm ci && npm run build` |
+| composer / PHP Dockerfile | `composer install` |
+| docker-compose / docker/ | `docker compose up -d` |
+| マイグレーション | `migrate --force` |
+| config / routes / Providers | `optimize:clear` → cache 再生成 |
+| PHP / config / routes | `docker compose restart app`（php-fpm） |
+| nginx 設定 | `docker compose up -d web` |
+| 毎回 | `config:cache`, `route:cache`, queue 再起動, `/up` 確認 |
+
 ---
 
 ## 主要ファイル
