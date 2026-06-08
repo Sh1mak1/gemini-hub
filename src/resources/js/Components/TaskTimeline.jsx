@@ -97,7 +97,7 @@ export default function TaskTimeline({ tasks }) {
 
     if (!tasks.length) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
                 タイムラインに表示するタスクがありません
             </div>
         );
@@ -112,12 +112,12 @@ export default function TaskTimeline({ tasks }) {
     const showTodayMarker = todayOffset >= 0 && todayOffset <= 100;
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-6 py-4">
-                <h3 className="text-base font-semibold text-slate-900">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40">
+            <div className="border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                     タイムライン
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     開始日から期日までの流れを可視化しています
                 </p>
             </div>
@@ -125,15 +125,15 @@ export default function TaskTimeline({ tasks }) {
             <div className="overflow-x-auto">
                 <div className="min-w-[760px]">
                     {/* ヘッダー */}
-                    <div className="flex border-b border-slate-100 bg-slate-50/50">
+                    <div className="flex border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/60">
                         <div
-                            className="shrink-0 border-r border-slate-200 px-4 py-3 text-xs font-medium text-slate-500"
+                            className="shrink-0 border-r border-slate-200 px-4 py-3 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400"
                             style={{ width: LABEL_COLUMN_WIDTH }}
                         >
                             タスク
                         </div>
                         <div className="relative min-w-0 flex-1 px-4 py-3">
-                            <div className="flex justify-between text-xs text-slate-400">
+                            <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
                                 {ticks.map((tick) => (
                                     <span key={tick.toISOString()}>
                                         {formatShortDate(
@@ -158,7 +158,7 @@ export default function TaskTimeline({ tasks }) {
                     {/* 本体: ラベル列 + チャート列（今日ラインは1本のみ） */}
                     <div className="flex">
                         <div
-                            className="shrink-0 border-r border-slate-200 bg-white"
+                            className="shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
                             style={{ width: LABEL_COLUMN_WIDTH }}
                         >
                             {rows.map((task) => {
@@ -171,7 +171,7 @@ export default function TaskTimeline({ tasks }) {
                                 return (
                                     <div
                                         key={`${task.source}-${task.id}`}
-                                        className="border-b border-slate-100 px-4 py-4 last:border-b-0"
+                                        className="border-b border-slate-100 px-4 py-4 last:border-b-0 dark:border-slate-800"
                                     >
                                         <div className="flex items-start gap-2">
                                             <span
@@ -179,19 +179,19 @@ export default function TaskTimeline({ tasks }) {
                                             />
                                             <div className="min-w-0">
                                                 <p
-                                                    className={`text-sm font-semibold leading-snug ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}
+                                                    className={`text-sm font-semibold leading-snug ${isCompleted ? 'text-slate-400 line-through dark:text-slate-600' : 'text-slate-900 dark:text-slate-100'}`}
                                                 >
                                                     {task.title}
                                                 </p>
-                                                <p className="mt-1.5 text-xs text-slate-500">
+                                                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                                                     開始{' '}
-                                                    <span className="font-medium text-slate-700">
+                                                    <span className="font-medium text-slate-700 dark:text-slate-200">
                                                         {task.start_date}
                                                     </span>
                                                 </p>
-                                                <p className="mt-0.5 text-xs text-slate-500">
+                                                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                                     期日{' '}
-                                                    <span className="font-medium text-slate-700">
+                                                    <span className="font-medium text-slate-700 dark:text-slate-200">
                                                         {task.due_date ??
                                                             '未設定'}
                                                     </span>
@@ -203,7 +203,7 @@ export default function TaskTimeline({ tasks }) {
                             })}
                         </div>
 
-                        <div className="relative min-w-0 flex-1 bg-slate-50/60 px-4">
+                        <div className="relative min-w-0 flex-1 bg-slate-50/60 px-4 dark:bg-slate-950/70">
                             {showTodayMarker && (
                                 <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-10">
                                     <div
@@ -223,9 +223,9 @@ export default function TaskTimeline({ tasks }) {
                                 return (
                                     <div
                                         key={`${task.source}-${task.id}`}
-                                        className="border-b border-slate-100 py-4 last:border-b-0"
+                                        className="border-b border-slate-100 py-4 last:border-b-0 dark:border-slate-800"
                                     >
-                                        <div className="relative h-8 rounded-lg bg-white/80 ring-1 ring-slate-200/80">
+                                        <div className="relative h-8 rounded-lg bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
                                             <div
                                                 className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-gradient-to-r shadow-sm ${colors.bar} ${isCompleted ? 'opacity-35' : 'opacity-95'}`}
                                                 style={{
@@ -233,7 +233,7 @@ export default function TaskTimeline({ tasks }) {
                                                     width: `${task.widthPercent}%`,
                                                 }}
                                             >
-                                                <span className="absolute -right-0.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 rounded-sm bg-white shadow" />
+                                                <span className="absolute -right-0.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 rounded-sm bg-white shadow dark:bg-slate-200" />
                                             </div>
                                         </div>
                                     </div>
