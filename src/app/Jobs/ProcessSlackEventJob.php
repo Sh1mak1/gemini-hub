@@ -71,11 +71,22 @@ class ProcessSlackEventJob implements ShouldQueue
 
         $persisted = $taskPersistence->persist($outcome);
 
-        $notification->notifyTaskCreated(
-            $persisted->model,
-            sourceChannelId: $event->channelId,
-            geminiFailure: $outcome->geminiFailure,
-        );
+        $todayDueTasksSlack->dispatchNow();
+
+        try {
+            $notification->notifyTaskCreated(
+                $persisted->model,
+                sourceChannelId: $event->channelId,
+                geminiFailure: $outcome->geminiFailure,
+            );
+        } catch (Throwable $exception) {
+            OperationLogger::error('slack.notify', 'failed', [
+                'task_id' => $persisted->id,
+                'task_source' => $persisted->source,
+                'channel_id' => $event->channelId,
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         OperationLogger::info('slack.job', 'task_created', [
             'task_id' => $persisted->id,
@@ -85,8 +96,6 @@ class ProcessSlackEventJob implements ShouldQueue
             'used_ai' => $persisted->isAi(),
             'gemini_error_status' => $outcome->geminiFailure?->status,
         ]);
-
-        $todayDueTasksSlack->dispatch();
     }
 
     private function resolveInputText(SlackIncomingEvent $event, SlackApiClient $slackApi): ?string

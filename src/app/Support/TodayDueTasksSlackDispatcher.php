@@ -10,4 +10,9 @@ class TodayDueTasksSlackDispatcher
     {
         SyncTodayDueTasksSlackJob::dispatch();
     }
+
+    public function dispatchNow(): void
+    {
+        SyncTodayDueTasksSlackJob::dispatchSync();
+    }
 }

@@ -6,6 +6,7 @@ use App\Data\GeminiExtractionFailure;
 use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Support\OperationLogger;
+use Throwable;
 
 class SlackNotificationService
 {
@@ -34,7 +35,19 @@ class SlackNotificationService
 
         $message = $this->buildTaskCreatedMessage($task, $geminiFailure);
 
-        $this->slackApi->postMessage($channelId, $message);
+        try {
+            $this->slackApi->postMessage($channelId, $message);
+        } catch (Throwable $exception) {
+            OperationLogger::error('slack.notify', 'post_failed', [
+                'task_id' => $task->id,
+                'task_source' => $task instanceof FallbackTask ? 'fallback' : 'ai',
+                'channel_id' => $channelId,
+                'category' => $task->category->value,
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
 
         OperationLogger::info('slack.notify', 'sent', [
             'task_id' => $task->id,
