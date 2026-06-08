@@ -12,13 +12,16 @@ echo "==> Deploying in $APP_DIR"
 OLD="$(git rev-parse HEAD)"
 git fetch origin main
 git checkout main
-git pull origin main
-NEW="$(git rev-parse HEAD)"
+TARGET="$(git rev-parse origin/main)"
 
-if [[ "$OLD" == "$NEW" ]]; then
-  echo "==> Already up to date ($NEW)"
+if [[ "$OLD" == "$TARGET" ]]; then
+  echo "==> Already up to date ($OLD)"
   exit 0
 fi
+
+# 本番は GitHub main が正。サーバー上のローカル変更は破棄する。
+git reset --hard origin/main
+NEW="$(git rev-parse HEAD)"
 
 CHANGED="$(git diff --name-only "$OLD" "$NEW" || true)"
 echo "==> Updated $OLD -> $NEW"

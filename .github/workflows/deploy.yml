@@ -31,8 +31,8 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/gemini-hub
-            if [ ! -f scripts/deploy-production.sh ]; then
-              git pull origin main
-            fi
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
             chmod +x scripts/deploy-production.sh
             APP_DIR=~/gemini-hub APP_URL=https://gemini-hub.duckdns.org ./scripts/deploy-production.sh
