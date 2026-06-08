@@ -3,6 +3,22 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            (function () {
+                try {
+                    var storedTheme = window.localStorage.getItem('theme');
+                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                    if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                } catch (error) {
+                    document.documentElement.classList.remove('dark');
+                }
+            })();
+        </script>
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
@@ -16,7 +32,7 @@
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased">
+    <body class="bg-white font-sans antialiased text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         @inertia
     </body>
 </html>
