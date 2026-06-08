@@ -1,5 +1,7 @@
 <?php
 
+// deploy-pipeline-verify: triggers optimize:clear + app restart on deploy
+
 return [
 
     /*
