@@ -1,0 +1,31 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ~/gemini-hub
+            # 初回のみ: スクリプト自体がまだ無い場合に取得
+            if [ ! -f scripts/deploy-production.sh ]; then
+              git pull origin main
+            fi
+            chmod +x scripts/deploy-production.sh
+            APP_DIR=~/gemini-hub APP_URL=https://gemini-hub.duckdns.org ./scripts/deploy-production.sh
