@@ -17,17 +17,17 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null
+          install -m 700 -d "${{ github.workspace }}/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "${{ github.workspace }}/.ssh/deploy_key"
+          chmod 600 "${{ github.workspace }}/.ssh/deploy_key"
+          ssh-keygen -y -f "${{ github.workspace }}/.ssh/deploy_key" >/dev/null
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
-          key_path: ~/.ssh/deploy_key
+          key_path: ${{ github.workspace }}/.ssh/deploy_key
           script: |
             set -euo pipefail
             cd ~/gemini-hub
