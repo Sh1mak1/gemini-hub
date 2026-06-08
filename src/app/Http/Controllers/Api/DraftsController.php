@@ -8,6 +8,7 @@ use App\Services\Drafts\DraftsTaskCache;
 use App\Services\Drafts\DraftsTaskCreateService;
 use App\Services\Drafts\DraftsTaskListService;
 use App\Support\OperationLogger;
+use App\Support\TodayDueTasksSlackDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -30,6 +31,7 @@ class DraftsController extends Controller
         Request $request,
         DraftsTaskCreateService $createService,
         DraftsTaskListService $taskListService,
+        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ): Response {
         $input = $this->extractRequestText($request);
 
@@ -55,6 +57,7 @@ class DraftsController extends Controller
         }
 
         $text = $taskListService->fetchAndCache();
+        $todayDueTasksSlack->dispatch();
 
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
@@ -67,6 +70,7 @@ class DraftsController extends Controller
         DraftsTaskCache $cache,
         DraftsDiffService $diffService,
         DraftsTaskListService $taskListService,
+        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ): Response {
         $updatedText = $this->extractRequestText($request);
 
@@ -97,6 +101,7 @@ class DraftsController extends Controller
         ]);
 
         $text = $taskListService->fetchAndCache();
+        $todayDueTasksSlack->dispatch();
 
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',

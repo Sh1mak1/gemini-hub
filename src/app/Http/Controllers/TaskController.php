@@ -6,6 +6,7 @@ use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Services\Tasks\TaskListAssembler;
 use App\Support\OperationLogger;
+use App\Support\TodayDueTasksSlackDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,17 +23,22 @@ class TaskController extends Controller
         ]);
     }
 
-    public function complete(string $source, int $id): RedirectResponse
-    {
+    public function complete(
+        string $source,
+        int $id,
+        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
+    ): RedirectResponse {
         if ($source === 'ai') {
-            return $this->completeAiTask($id);
+            $response = $this->completeAiTask($id);
+        } elseif ($source === 'fallback') {
+            $response = $this->completeFallbackTask($id);
+        } else {
+            abort(404);
         }
 
-        if ($source === 'fallback') {
-            return $this->completeFallbackTask($id);
-        }
+        $todayDueTasksSlack->dispatch();
 
-        abort(404);
+        return $response;
     }
 
     private function completeAiTask(int $id): RedirectResponse

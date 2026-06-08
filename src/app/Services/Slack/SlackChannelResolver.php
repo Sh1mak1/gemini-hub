@@ -11,6 +11,27 @@ class SlackChannelResolver
         private SlackApiClient $slackApi,
     ) {}
 
+    public function resolveKyouChannel(): ?string
+    {
+        $configuredChannelId = config('services.slack.kyou.channel_id');
+
+        if (is_string($configuredChannelId) && $configuredChannelId !== '') {
+            return $configuredChannelId;
+        }
+
+        $channelName = config('services.slack.kyou.channel_name');
+
+        if (! is_string($channelName) || $channelName === '') {
+            return null;
+        }
+
+        return Cache::remember(
+            'slack.channel_id.kyou',
+            now()->addHour(),
+            fn () => $this->findChannelIdByName($channelName),
+        );
+    }
+
     public function resolveForCategory(TaskCategory $category): ?string
     {
         $configuredChannelId = config("services.slack.channels.{$category->value}");

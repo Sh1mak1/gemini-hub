@@ -69,10 +69,27 @@ class SlackApiClient
         return $channels;
     }
 
-    public function postMessage(string $channelId, string $text): void
+    public function postMessage(string $channelId, string $text): string
     {
-        $this->post('chat.postMessage', [
+        $response = $this->post('chat.postMessage', [
             'channel' => $channelId,
+            'text' => $text,
+        ]);
+
+        $ts = $response['ts'] ?? null;
+
+        if (! is_string($ts) || $ts === '') {
+            throw new RuntimeException('Slack API did not return a message timestamp.');
+        }
+
+        return $ts;
+    }
+
+    public function updateMessage(string $channelId, string $messageTs, string $text): void
+    {
+        $this->post('chat.update', [
+            'channel' => $channelId,
+            'ts' => $messageTs,
             'text' => $text,
         ]);
     }

@@ -9,6 +9,7 @@ use App\Services\Slack\SlackEventExtractor;
 use App\Services\Slack\SlackNotificationService;
 use App\Services\Tasks\TaskPersistenceService;
 use App\Support\OperationLogger;
+use App\Support\TodayDueTasksSlackDispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -32,6 +33,7 @@ class ProcessSlackEventJob implements ShouldQueue
         TaskExtractionService $taskExtraction,
         TaskPersistenceService $taskPersistence,
         SlackNotificationService $notification,
+        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ): void {
         $event = $extractor->extract($this->payload);
 
@@ -83,6 +85,8 @@ class ProcessSlackEventJob implements ShouldQueue
             'used_ai' => $persisted->isAi(),
             'gemini_error_status' => $outcome->geminiFailure?->status,
         ]);
+
+        $todayDueTasksSlack->dispatch();
     }
 
     private function resolveInputText(SlackIncomingEvent $event, SlackApiClient $slackApi): ?string
