@@ -22,8 +22,17 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::get('/tasks/{source}/{id}', [TaskController::class, 'show'])
+        ->whereIn('source', ['ai', 'fallback'])
+        ->whereNumber('id')
+        ->name('tasks.show');
+    Route::patch('/tasks/{source}/{id}', [TaskController::class, 'update'])
+        ->whereIn('source', ['ai', 'fallback'])
+        ->whereNumber('id')
+        ->name('tasks.update');
     Route::patch('/tasks/{source}/{id}/complete', [TaskController::class, 'complete'])
         ->whereIn('source', ['ai', 'fallback'])
+        ->whereNumber('id')
         ->name('tasks.complete');
 
     Route::get('/debug/logs', [DebugController::class, 'logs'])->name('debug.logs');
