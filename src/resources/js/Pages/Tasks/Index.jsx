@@ -36,7 +36,15 @@ function TaskCard({ task, onComplete, completingId }) {
                     <h4
                         className={`text-sm font-semibold ${task.status === 'completed' ? 'text-slate-400 line-through dark:text-slate-600' : 'text-slate-900 dark:text-slate-100'}`}
                     >
-                        {task.title}
+                        <Link
+                            href={route('tasks.show', {
+                                source: task.source,
+                                id: task.id,
+                            })}
+                            className="transition hover:text-indigo-600 dark:hover:text-indigo-300"
+                        >
+                            {task.title}
+                        </Link>
                     </h4>
                     <div className="mt-3 flex flex-wrap gap-2">
                         <span
@@ -53,6 +61,15 @@ function TaskCard({ task, onComplete, completingId }) {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                     <span className="text-xs text-slate-400 dark:text-slate-500">#{task.id}</span>
+                    <Link
+                        href={route('tasks.show', {
+                            source: task.source,
+                            id: task.id,
+                        })}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/70 dark:hover:bg-slate-800 dark:hover:text-indigo-200"
+                    >
+                        詳細
+                    </Link>
                     {task.status === 'pending' && onComplete && (
                         <button
                             type="button"
