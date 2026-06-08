@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # gemini-hub 本番デプロイ（GitHub Actions または手動 SSH から実行）
+#
+# 注意: GitHub Actions 側で先に git reset しないこと。
+# OLD（更新前 HEAD）と NEW の差分で npm build 等を判定するため。
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-$HOME/gemini-hub}"
@@ -54,7 +57,8 @@ run docker compose exec -T app php artisan migrate --force
 
 # --- フロントエンド ---
 
-if needs '^src/resources/|^src/package(-lock)?\.json|^src/vite\.config|^src/tailwind\.config|^src/postcss\.config'; then
+if needs '^src/resources/|^src/package(-lock)?\.json|^src/vite\.config|^src/tailwind\.config|^src/postcss\.config' \
+   || [[ ! -f src/public/build/manifest.json ]]; then
   run docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
 fi
 
