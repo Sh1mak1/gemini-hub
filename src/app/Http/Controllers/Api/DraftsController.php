@@ -57,7 +57,7 @@ class DraftsController extends Controller
         }
 
         $text = $taskListService->fetchAndCache();
-        $todayDueTasksSlack->dispatch();
+        $todayDueTasksSlack->dispatchNow();
 
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
@@ -101,7 +101,7 @@ class DraftsController extends Controller
         ]);
 
         $text = $taskListService->fetchAndCache();
-        $todayDueTasksSlack->dispatch();
+        $todayDueTasksSlack->dispatchNow();
 
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',

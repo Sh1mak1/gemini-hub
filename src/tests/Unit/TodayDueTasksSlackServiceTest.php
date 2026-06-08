@@ -79,7 +79,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $this->assertNull(Cache::get('slack.kyou.daily_post.2026-06-08'));
     }
 
-    public function test_sync_updates_existing_message_when_tasks_change(): void
+    public function test_sync_reposts_when_tasks_change(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-08 10:00:00', 'Asia/Tokyo'));
 
@@ -101,13 +101,16 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
         $channelResolver->shouldReceive('resolveKyouChannel')->once()->andReturn('CKYOU');
 
-        $slackApi->shouldReceive('updateMessage')
+        $slackApi->shouldReceive('deleteMessage')
             ->once()
-            ->with('CKYOU', '1234.5678', Mockery::on(function (string $message): bool {
-                return str_contains($message, '1. 買い物（趣味 / 場所: 未設定）');
-            }));
+            ->with('CKYOU', '1234.5678');
 
-        $slackApi->shouldReceive('postMessage')->never();
+        $slackApi->shouldReceive('postMessage')
+            ->once()
+            ->with('CKYOU', Mockery::on(function (string $message): bool {
+                return str_contains($message, '1. 買い物（趣味 / 場所: 未設定）');
+            }))
+            ->andReturn('9999.0001');
 
         $service = new TodayDueTasksSlackService($slackApi, $channelResolver);
         $service->sync();

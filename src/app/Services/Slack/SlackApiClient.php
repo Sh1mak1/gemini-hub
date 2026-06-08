@@ -101,6 +101,14 @@ class SlackApiClient
         ]);
     }
 
+    public function deleteMessage(string $channelId, string $messageTs): void
+    {
+        $this->post('chat.delete', [
+            'channel' => $channelId,
+            'ts' => $messageTs,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>

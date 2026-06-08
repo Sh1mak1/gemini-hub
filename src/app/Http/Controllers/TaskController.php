@@ -36,7 +36,7 @@ class TaskController extends Controller
             abort(404);
         }
 
-        $todayDueTasksSlack->dispatch();
+        $todayDueTasksSlack->dispatchNow();
 
         return $response;
     }

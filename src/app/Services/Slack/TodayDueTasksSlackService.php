@@ -50,28 +50,20 @@ class TodayDueTasksSlackService
 
         try {
             if ($existing !== null) {
-                $this->slackApi->updateMessage($channelId, $existing->messageTs, $payload['text']);
-                $this->storePostState($today, $channelId, $existing->messageTs, $payload['hash']);
-
-                OperationLogger::info('slack.kyou', 'updated', [
-                    'date' => $today,
-                    'task_count' => $payload['count'],
-                    'channel_id' => $channelId,
-                    'message_ts' => $existing->messageTs,
-                ]);
-
-                return;
+                $this->deletePreviousMessage($channelId, $existing->messageTs);
+            } else {
+                $this->ensureBotInChannel($channelId);
             }
 
-            $this->ensureBotInChannel($channelId);
             $messageTs = $this->slackApi->postMessage($channelId, $payload['text']);
             $this->storePostState($today, $channelId, $messageTs, $payload['hash']);
 
-            OperationLogger::info('slack.kyou', 'posted', [
+            OperationLogger::info('slack.kyou', $existing !== null ? 'reposted' : 'posted', [
                 'date' => $today,
                 'task_count' => $payload['count'],
                 'channel_id' => $channelId,
                 'message_ts' => $messageTs,
+                'previous_message_ts' => $existing?->messageTs,
                 'forced' => $forceScheduled,
             ]);
         } catch (Throwable $exception) {
@@ -92,6 +84,19 @@ class TodayDueTasksSlackService
         } catch (Throwable $exception) {
             OperationLogger::warning('slack.kyou', 'join_failed', [
                 'channel_id' => $channelId,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function deletePreviousMessage(string $channelId, string $messageTs): void
+    {
+        try {
+            $this->slackApi->deleteMessage($channelId, $messageTs);
+        } catch (Throwable $exception) {
+            OperationLogger::warning('slack.kyou', 'delete_failed', [
+                'channel_id' => $channelId,
+                'message_ts' => $messageTs,
                 'error' => $exception->getMessage(),
             ]);
         }
