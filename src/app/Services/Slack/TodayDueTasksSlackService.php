@@ -63,6 +63,7 @@ class TodayDueTasksSlackService
                 return;
             }
 
+            $this->ensureBotInChannel($channelId);
             $messageTs = $this->slackApi->postMessage($channelId, $payload['text']);
             $this->storePostState($today, $channelId, $messageTs, $payload['hash']);
 
@@ -81,6 +82,18 @@ class TodayDueTasksSlackService
             ]);
 
             throw $exception;
+        }
+    }
+
+    private function ensureBotInChannel(string $channelId): void
+    {
+        try {
+            $this->slackApi->joinChannel($channelId);
+        } catch (Throwable $exception) {
+            OperationLogger::warning('slack.kyou', 'join_failed', [
+                'channel_id' => $channelId,
+                'error' => $exception->getMessage(),
+            ]);
         }
     }
 

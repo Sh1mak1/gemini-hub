@@ -69,6 +69,13 @@ class SlackApiClient
         return $channels;
     }
 
+    public function joinChannel(string $channelId): void
+    {
+        $this->post('conversations.join', [
+            'channel' => $channelId,
+        ]);
+    }
+
     public function postMessage(string $channelId, string $text): string
     {
         $response = $this->post('chat.postMessage', [
