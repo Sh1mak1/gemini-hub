@@ -3,7 +3,9 @@
 namespace App\Services\Gemini;
 
 use App\Data\ExtractedTaskData;
+use App\Data\GeminiExtractionFailure;
 use App\Data\TaskExtractionOutcome;
+use App\Exceptions\GeminiApiException;
 use App\Support\OperationLogger;
 use Throwable;
 
@@ -45,13 +47,32 @@ class TaskExtractionService
 
             return TaskExtractionOutcome::fromAi($task);
         } catch (Throwable $exception) {
+            $failure = $this->toExtractionFailure($exception);
+
             OperationLogger::warning('gemini.extract', 'fallback', [
                 'input_preview' => mb_substr($inputText, 0, 100),
-                'error' => $exception->getMessage(),
+                'error' => $failure->message,
+                'status' => $failure->status,
+                'retryable' => $failure->retryable,
             ]);
 
-            return TaskExtractionOutcome::fromFallback($inputText);
+            return TaskExtractionOutcome::fromFallback($inputText, $failure);
         }
+    }
+
+    private function toExtractionFailure(Throwable $exception): GeminiExtractionFailure
+    {
+        if ($exception instanceof GeminiApiException) {
+            return new GeminiExtractionFailure(
+                message: $exception->getMessage(),
+                status: $exception->status,
+                retryable: $exception->retryable,
+            );
+        }
+
+        return new GeminiExtractionFailure(
+            message: $exception->getMessage(),
+        );
     }
 
     private function buildPrompt(string $inputText): string

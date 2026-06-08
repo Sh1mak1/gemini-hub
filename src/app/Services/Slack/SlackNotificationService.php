@@ -2,6 +2,7 @@
 
 namespace App\Services\Slack;
 
+use App\Data\GeminiExtractionFailure;
 use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Support\OperationLogger;
@@ -13,8 +14,11 @@ class SlackNotificationService
         private SlackChannelResolver $channelResolver,
     ) {}
 
-    public function notifyTaskCreated(Task|FallbackTask $task, ?string $sourceChannelId = null): void
-    {
+    public function notifyTaskCreated(
+        Task|FallbackTask $task,
+        ?string $sourceChannelId = null,
+        ?GeminiExtractionFailure $geminiFailure = null,
+    ): void {
         $channelId = $this->channelResolver->resolveForCategory($task->category)
             ?? $sourceChannelId;
 
@@ -28,19 +32,7 @@ class SlackNotificationService
             return;
         }
 
-        $dueDate = $task->due_date?->format('Y-m-d') ?? '未設定';
-        $location = $task->location ?? '未設定';
-        $header = $task instanceof FallbackTask
-            ? '⚠️ タスクを登録しました（AI未解析）'
-            : '✅ タスクを登録しました';
-
-        $message = implode("\n", [
-            $header,
-            "• タイトル: {$task->title}",
-            "• 期日: {$dueDate}",
-            "• カテゴリ: {$task->category->label()}",
-            "• 実行場所: {$location}",
-        ]);
+        $message = $this->buildTaskCreatedMessage($task, $geminiFailure);
 
         $this->slackApi->postMessage($channelId, $message);
 
@@ -50,6 +42,40 @@ class SlackNotificationService
             'channel_id' => $channelId,
             'category' => $task->category->value,
             'used_source_channel' => $sourceChannelId !== null && $channelId === $sourceChannelId,
+            'gemini_error_status' => $geminiFailure?->status,
         ]);
+    }
+
+    private function buildTaskCreatedMessage(
+        Task|FallbackTask $task,
+        ?GeminiExtractionFailure $geminiFailure,
+    ): string {
+        $dueDate = $task->due_date?->format('Y-m-d') ?? '未設定';
+        $location = $task->location ?? '未設定';
+        $header = $task instanceof FallbackTask
+            ? '⚠️ タスクを登録しました（AI未解析）'
+            : '✅ タスクを登録しました';
+
+        $lines = [$header];
+
+        if ($geminiFailure !== null) {
+            $lines[] = $this->formatGeminiError($geminiFailure);
+        }
+
+        $lines[] = "• タイトル: {$task->title}";
+        $lines[] = "• 期日: {$dueDate}";
+        $lines[] = "• カテゴリ: {$task->category->label()}";
+        $lines[] = "• 実行場所: {$location}";
+
+        return implode("\n", $lines);
+    }
+
+    private function formatGeminiError(GeminiExtractionFailure $failure): string
+    {
+        $status = $failure->status !== null ? (string) $failure->status : '不明';
+        $retry = $failure->retryable ? ' / リトライ可' : '';
+        $detail = mb_substr($failure->message, 0, 200);
+
+        return "• Gemini API エラー: HTTP {$status}{$retry}\n  {$detail}";
     }
 }

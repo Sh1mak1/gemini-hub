@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Models\User;
+use App\Exceptions\GeminiApiException;
 use App\Services\Gemini\GeminiClient;
 use App\Services\Gemini\TaskExtractionService;
 use App\Services\Tasks\TaskPersistenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
-use RuntimeException;
 use Tests\TestCase;
 
 class TaskFallbackTest extends TestCase
@@ -41,13 +41,15 @@ class TaskFallbackTest extends TestCase
         $gemini = Mockery::mock(GeminiClient::class);
         $gemini->shouldReceive('generateStructured')
             ->once()
-            ->andThrow(new RuntimeException('Gemini API request failed.'));
+            ->andThrow(new GeminiApiException('Gemini API request failed.', 503, true));
 
         $service = new TaskExtractionService($gemini);
         $outcome = $service->extract('歯医者に行く');
 
         $this->assertNotNull($outcome);
         $this->assertFalse($outcome->usedAi());
+        $this->assertTrue($outcome->hadGeminiApiError());
+        $this->assertSame(503, $outcome->geminiFailure?->status);
 
         $persisted = app(TaskPersistenceService::class)->persist($outcome);
 
