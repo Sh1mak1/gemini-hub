@@ -9,7 +9,7 @@ class PostTodayDueTasksCommand extends Command
 {
     protected $signature = 'slack:post-today-tasks';
 
-    protected $description = 'Post pending tasks due today to the Kyou Slack channel';
+    protected $description = 'Post pending tasks due today to the today Slack channel';
 
     public function handle(TodayDueTasksSlackService $service): int
     {

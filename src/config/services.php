@@ -41,10 +41,10 @@ return [
             'hobby' => env('SLACK_CHANNEL_NAME_HOBBY', 'todo-hobby'),
             'other' => env('SLACK_CHANNEL_NAME_OTHER'),
         ],
-        'kyou' => [
-            'channel_id' => env('SLACK_CHANNEL_KYOU'),
-            'channel_name' => env('SLACK_CHANNEL_NAME_KYOU', 'Kyou'),
-            'post_hour' => (int) env('SLACK_KYOU_POST_HOUR', 9),
+        'today' => [
+            'channel_id' => env('SLACK_CHANNEL_TODAY', env('SLACK_CHANNEL_KYOU')),
+            'channel_name' => env('SLACK_CHANNEL_NAME_TODAY', env('SLACK_CHANNEL_NAME_KYOU', 'kyou')),
+            'post_hour' => (int) env('SLACK_TODAY_POST_HOUR', env('SLACK_KYOU_POST_HOUR', 9)),
         ],
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

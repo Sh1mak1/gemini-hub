@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\FallbackTask;
+use App\Models\Task;
 use App\Services\Drafts\DraftsDiffService;
 use App\Services\Drafts\DraftsTaskCache;
 use App\Services\Drafts\DraftsTaskCreateService;
 use App\Services\Drafts\DraftsTaskListService;
+use App\Services\Slack\SlackNotificationService;
 use App\Support\OperationLogger;
 use App\Support\TodayDueTasksSlackDispatcher;
 use Illuminate\Http\Request;
@@ -31,6 +34,7 @@ class DraftsController extends Controller
         Request $request,
         DraftsTaskCreateService $createService,
         DraftsTaskListService $taskListService,
+        SlackNotificationService $slackNotification,
         TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ): Response {
         $input = $this->extractRequestText($request);
@@ -54,6 +58,14 @@ class DraftsController extends Controller
                 422,
                 ['Content-Type' => 'text/plain; charset=UTF-8'],
             );
+        }
+
+        foreach ($createdIds as $ref) {
+            $task = $this->findCreatedTask($ref);
+
+            if ($task !== null) {
+                $slackNotification->notifyTaskCreated($task);
+            }
         }
 
         $text = $taskListService->fetchAndCache();
@@ -106,6 +118,21 @@ class DraftsController extends Controller
         return response($text, 200, [
             'Content-Type' => 'text/plain; charset=UTF-8',
         ]);
+    }
+
+    private function findCreatedTask(string $ref): Task|FallbackTask|null
+    {
+        [$source, $id] = array_pad(explode(':', $ref, 2), 2, null);
+
+        if (! is_string($source) || ! is_string($id) || ! ctype_digit($id)) {
+            return null;
+        }
+
+        return match ($source) {
+            'ai' => Task::query()->find((int) $id),
+            'fallback' => FallbackTask::query()->find((int) $id),
+            default => null,
+        };
     }
 
     private function extractRequestText(Request $request): string

@@ -71,22 +71,13 @@ class ProcessSlackEventJob implements ShouldQueue
 
         $persisted = $taskPersistence->persist($outcome);
 
-        $todayDueTasksSlack->dispatchNow();
+        $notification->notifyTaskCreated(
+            $persisted->model,
+            sourceChannelId: $event->channelId,
+            geminiFailure: $outcome->geminiFailure,
+        );
 
-        try {
-            $notification->notifyTaskCreated(
-                $persisted->model,
-                sourceChannelId: $event->channelId,
-                geminiFailure: $outcome->geminiFailure,
-            );
-        } catch (Throwable $exception) {
-            OperationLogger::error('slack.notify', 'failed', [
-                'task_id' => $persisted->id,
-                'task_source' => $persisted->source,
-                'channel_id' => $event->channelId,
-                'error' => $exception->getMessage(),
-            ]);
-        }
+        $todayDueTasksSlack->dispatchNow();
 
         OperationLogger::info('slack.job', 'task_created', [
             'task_id' => $persisted->id,

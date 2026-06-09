@@ -138,12 +138,14 @@ class SlackApiClient
         }
 
         if (! is_array($response) || ($response['ok'] ?? false) !== true) {
+            $error = is_string($response['error'] ?? null) ? $response['error'] : 'unknown';
+
             Log::error('Slack API returned an error.', [
                 'method' => $method,
-                'error' => $response['error'] ?? 'unknown',
+                'error' => $error,
             ]);
 
-            throw new RuntimeException("Slack API error: {$method}");
+            throw new RuntimeException("Slack API error: {$method} ({$error})");
         }
 
         return $response;

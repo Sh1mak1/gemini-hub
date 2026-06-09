@@ -46,7 +46,7 @@ class SlackNotificationService
                 'error' => $exception->getMessage(),
             ]);
 
-            throw $exception;
+            return;
         }
 
         OperationLogger::info('slack.notify', 'sent', [

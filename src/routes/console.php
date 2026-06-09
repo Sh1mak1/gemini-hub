@@ -9,5 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('slack:post-today-tasks')
-    ->dailyAt(sprintf('%02d:00', (int) config('services.slack.kyou.post_hour', 9)))
+    ->dailyAt(sprintf('%02d:00', (int) config('services.slack.today.post_hour', 9)))
     ->timezone(config('app.display_timezone', 'Asia/Tokyo'));

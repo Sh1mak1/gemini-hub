@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Jobs\SyncTodayDueTasksSlackJob;
+use Throwable;
 
 class TodayDueTasksSlackDispatcher
 {
@@ -13,6 +14,12 @@ class TodayDueTasksSlackDispatcher
 
     public function dispatchNow(): void
     {
-        SyncTodayDueTasksSlackJob::dispatchSync();
+        try {
+            SyncTodayDueTasksSlackJob::dispatchSync();
+        } catch (Throwable $exception) {
+            OperationLogger::error('slack.today', 'dispatch_failed', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

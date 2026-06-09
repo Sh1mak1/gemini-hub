@@ -14,7 +14,7 @@ use Throwable;
 
 class TodayDueTasksSlackService
 {
-    private const string CACHE_KEY_PREFIX = 'slack.kyou.daily_post.';
+    private const string CACHE_KEY_PREFIX = 'slack.today.daily_post.';
 
     public function __construct(
         private SlackApiClient $slackApi,
@@ -25,17 +25,17 @@ class TodayDueTasksSlackService
     {
         $today = DisplayTime::today()->format('Y-m-d');
         $now = Carbon::now(DisplayTime::timezone());
-        $postHour = (int) config('services.slack.kyou.post_hour', 9);
+        $postHour = (int) config('services.slack.today.post_hour', 9);
         $existing = $this->getPostState($today);
 
         if (! $forceScheduled && $now->hour < $postHour && $existing === null) {
             return;
         }
 
-        $channelId = $this->channelResolver->resolveKyouChannel();
+        $channelId = $this->channelResolver->resolveTodayChannel();
 
         if ($channelId === null) {
-            OperationLogger::warning('slack.kyou', 'channel_not_found', [
+            OperationLogger::warning('slack.today', 'channel_not_found', [
                 'date' => $today,
             ]);
 
@@ -51,14 +51,12 @@ class TodayDueTasksSlackService
         try {
             if ($existing !== null) {
                 $this->deletePreviousMessage($channelId, $existing->messageTs);
-            } else {
-                $this->ensureBotInChannel($channelId);
             }
 
             $messageTs = $this->slackApi->postMessage($channelId, $payload['text']);
             $this->storePostState($today, $channelId, $messageTs, $payload['hash']);
 
-            OperationLogger::info('slack.kyou', $existing !== null ? 'reposted' : 'posted', [
+            OperationLogger::info('slack.today', $existing !== null ? 'reposted' : 'posted', [
                 'date' => $today,
                 'task_count' => $payload['count'],
                 'channel_id' => $channelId,
@@ -67,22 +65,8 @@ class TodayDueTasksSlackService
                 'forced' => $forceScheduled,
             ]);
         } catch (Throwable $exception) {
-            OperationLogger::error('slack.kyou', 'sync_failed', [
+            OperationLogger::error('slack.today', 'sync_failed', [
                 'date' => $today,
-                'channel_id' => $channelId,
-                'error' => $exception->getMessage(),
-            ]);
-
-            throw $exception;
-        }
-    }
-
-    private function ensureBotInChannel(string $channelId): void
-    {
-        try {
-            $this->slackApi->joinChannel($channelId);
-        } catch (Throwable $exception) {
-            OperationLogger::warning('slack.kyou', 'join_failed', [
                 'channel_id' => $channelId,
                 'error' => $exception->getMessage(),
             ]);
@@ -94,7 +78,7 @@ class TodayDueTasksSlackService
         try {
             $this->slackApi->deleteMessage($channelId, $messageTs);
         } catch (Throwable $exception) {
-            OperationLogger::warning('slack.kyou', 'delete_failed', [
+            OperationLogger::warning('slack.today', 'delete_failed', [
                 'channel_id' => $channelId,
                 'message_ts' => $messageTs,
                 'error' => $exception->getMessage(),

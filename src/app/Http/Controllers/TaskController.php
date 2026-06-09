@@ -39,8 +39,12 @@ class TaskController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $source, int $id): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        string $source,
+        int $id,
+        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
+    ): RedirectResponse {
         $task = $this->findTask($source, $id);
 
         $validated = $request->validate([
@@ -60,6 +64,8 @@ class TaskController extends Controller
             'status' => $task->status->value,
             'source' => $source,
         ]);
+
+        $todayDueTasksSlack->dispatchNow();
 
         return redirect()->route('tasks.show', [
             'source' => $source,

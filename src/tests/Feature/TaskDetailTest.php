@@ -66,7 +66,7 @@ class TaskDetailTest extends TestCase
         $this->assertDatabaseHas('tasks', [
             'id' => $task->id,
             'title' => '変更後のタスク',
-            'due_date' => '2026-06-09',
+            'due_date' => '2026-06-09 00:00:00',
             'category' => TaskCategory::Hobby->value,
             'location' => '自宅',
             'status' => TaskStatus::Completed->value,

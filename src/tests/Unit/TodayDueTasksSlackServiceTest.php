@@ -38,7 +38,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
 
         $slackApi = Mockery::mock(SlackApiClient::class);
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
-        $channelResolver->shouldReceive('resolveKyouChannel')->once()->andReturn('CKYOU');
+        $channelResolver->shouldReceive('resolveTodayChannel')->once()->andReturn('CKYOU');
 
         $slackApi->shouldReceive('postMessage')
             ->once()
@@ -52,7 +52,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $service = new TodayDueTasksSlackService($slackApi, $channelResolver);
         $service->sync(forceScheduled: true);
 
-        $cached = Cache::get('slack.kyou.daily_post.2026-06-08');
+        $cached = Cache::get('slack.today.daily_post.2026-06-08');
         $this->assertSame('CKYOU', $cached['channel_id'] ?? null);
         $this->assertSame('1234.5678', $cached['message_ts'] ?? null);
     }
@@ -69,21 +69,21 @@ class TodayDueTasksSlackServiceTest extends TestCase
 
         $slackApi = Mockery::mock(SlackApiClient::class);
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
-        $channelResolver->shouldReceive('resolveKyouChannel')->never();
+        $channelResolver->shouldReceive('resolveTodayChannel')->never();
         $slackApi->shouldReceive('postMessage')->never();
         $slackApi->shouldReceive('updateMessage')->never();
 
         $service = new TodayDueTasksSlackService($slackApi, $channelResolver);
         $service->sync();
 
-        $this->assertNull(Cache::get('slack.kyou.daily_post.2026-06-08'));
+        $this->assertNull(Cache::get('slack.today.daily_post.2026-06-08'));
     }
 
     public function test_sync_reposts_when_tasks_change(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-08 10:00:00', 'Asia/Tokyo'));
 
-        Cache::put('slack.kyou.daily_post.2026-06-08', [
+        Cache::put('slack.today.daily_post.2026-06-08', [
             'channel_id' => 'CKYOU',
             'message_ts' => '1234.5678',
             'content_hash' => 'old-hash',
@@ -99,7 +99,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
 
         $slackApi = Mockery::mock(SlackApiClient::class);
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
-        $channelResolver->shouldReceive('resolveKyouChannel')->once()->andReturn('CKYOU');
+        $channelResolver->shouldReceive('resolveTodayChannel')->once()->andReturn('CKYOU');
 
         $slackApi->shouldReceive('deleteMessage')
             ->once()
@@ -128,7 +128,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
 
         $slackApi = Mockery::mock(SlackApiClient::class);
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
-        $channelResolver->shouldReceive('resolveKyouChannel')->once()->andReturn('CKYOU');
+        $channelResolver->shouldReceive('resolveTodayChannel')->once()->andReturn('CKYOU');
 
         $slackApi->shouldReceive('postMessage')
             ->once()
