@@ -16,6 +16,7 @@ use Throwable;
 class TodayDueTasksSlackService
 {
     private const string CACHE_KEY_PREFIX = 'slack.today.daily_post.';
+    private const int GANTT_MAX_DAYS = 30;
 
     public function __construct(
         private SlackApiClient $slackApi,
@@ -180,7 +181,7 @@ class TodayDueTasksSlackService
     {
         $lines = [
             "📋 期限付き未完了タスク（{$date}時点）",
-            '近い順: 🔴期限切れ / 🟠今日 / 🟡3日以内 / 🔵7日以内 / 🟢8日以上',
+            '今日から期日までの長さを横棒で表示します（最大30日、+ はそれ以上）。',
             '',
         ];
 
@@ -189,6 +190,22 @@ class TodayDueTasksSlackService
 
             return implode("\n", $lines);
         }
+
+        $lines[] = '```text';
+        $lines[] = 'No  期日        差分   今日 -> 期日';
+
+        foreach ($tasks->values() as $index => $task) {
+            $number = $index + 1;
+            $dueDate = $task['due_date'] ?? '未設定';
+            $delta = $this->formatGanttDelta($task['days_until_due']);
+            $bar = $this->formatGanttBar($task['days_until_due']);
+            $lines[] = sprintf('%02d  %s  %-5s  %s', $number, $dueDate, $delta, $bar);
+        }
+
+        $lines[] = '```';
+        $lines[] = '';
+        $lines[] = '凡例: D- = 期限切れ / D+0 = 今日 / D+N = あとN日';
+        $lines[] = '';
 
         foreach ($tasks->values() as $index => $task) {
             $number = $index + 1;
@@ -202,6 +219,30 @@ class TodayDueTasksSlackService
         $lines[] = "全{$tasks->count()}件";
 
         return implode("\n", $lines);
+    }
+
+    private function formatGanttDelta(int $daysUntilDue): string
+    {
+        if ($daysUntilDue < 0) {
+            return 'D'.$daysUntilDue;
+        }
+
+        return 'D+'.$daysUntilDue;
+    }
+
+    private function formatGanttBar(int $daysUntilDue): string
+    {
+        if ($daysUntilDue < 0) {
+            $visibleDays = min(abs($daysUntilDue), self::GANTT_MAX_DAYS);
+            $overflow = abs($daysUntilDue) > self::GANTT_MAX_DAYS ? '+' : '';
+
+            return '<'.str_repeat('-', $visibleDays).'!'.$overflow;
+        }
+
+        $visibleDays = min($daysUntilDue, self::GANTT_MAX_DAYS);
+        $overflow = $daysUntilDue > self::GANTT_MAX_DAYS ? '+' : '';
+
+        return '|'.str_repeat('-', $visibleDays).'*'.$overflow;
     }
 
     private function formatDueStatus(int $daysUntilDue): string

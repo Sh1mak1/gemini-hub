@@ -82,7 +82,13 @@ class TodayDueTasksSlackServiceTest extends TestCase
             ->once()
             ->with('CKYOU', Mockery::on(function (string $message): bool {
                 return str_contains($message, '期限付き未完了タスク（2026-06-08時点）')
-                    && str_contains($message, '近い順: 🔴期限切れ / 🟠今日 / 🟡3日以内 / 🔵7日以内 / 🟢8日以上')
+                    && str_contains($message, '今日から期日までの長さを横棒で表示します')
+                    && str_contains($message, 'No  期日        差分   今日 -> 期日')
+                    && str_contains($message, '01  2026-06-06  D-2    <--!')
+                    && str_contains($message, '02  2026-06-08  D+0    |*')
+                    && str_contains($message, '03  2026-06-11  D+3    |---*')
+                    && str_contains($message, '04  2026-06-20  D+12   |------------*')
+                    && str_contains($message, '凡例: D- = 期限切れ / D+0 = 今日 / D+N = あとN日')
                     && str_contains($message, '1. 🔴 期限切れ（2日遅れ） 2026-06-06｜期限切れの提出（仕事 / 場所: オフィス）')
                     && str_contains($message, '2. 🟠 今日 2026-06-08｜歯医者（仕事 / 場所: 新宿）')
                     && str_contains($message, '3. 🟡 あと3日 2026-06-11｜未解析タスク（その他 / 場所: 未設定）')
@@ -152,7 +158,8 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $slackApi->shouldReceive('postMessage')
             ->once()
             ->with('CKYOU', Mockery::on(function (string $message): bool {
-                return str_contains($message, '1. 🟠 今日 2026-06-08｜買い物（趣味 / 場所: 未設定）');
+                return str_contains($message, '01  2026-06-08  D+0    |*')
+                    && str_contains($message, '1. 🟠 今日 2026-06-08｜買い物（趣味 / 場所: 未設定）');
             }))
             ->andReturn('9999.0001');
 
