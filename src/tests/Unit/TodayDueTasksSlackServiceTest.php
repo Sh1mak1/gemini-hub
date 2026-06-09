@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\TaskCategory;
 use App\Enums\TaskStatus;
+use App\Models\FallbackTask;
 use App\Models\Task;
 use App\Services\Slack\SlackApiClient;
 use App\Services\Slack\SlackChannelResolver;
@@ -24,9 +25,17 @@ class TodayDueTasksSlackServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_scheduled_sync_posts_message_for_tasks_due_today(): void
+    public function test_scheduled_sync_posts_message_for_open_tasks_with_due_dates(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-08 09:00:00', 'Asia/Tokyo'));
+
+        Task::factory()->create([
+            'title' => '期限切れの提出',
+            'due_date' => '2026-06-06',
+            'category' => TaskCategory::Work,
+            'location' => 'オフィス',
+            'status' => TaskStatus::Pending,
+        ]);
 
         Task::factory()->create([
             'title' => '歯医者',
@@ -36,6 +45,35 @@ class TodayDueTasksSlackServiceTest extends TestCase
             'status' => TaskStatus::Pending,
         ]);
 
+        FallbackTask::factory()->create([
+            'title' => '未解析タスク',
+            'raw_input' => '未解析タスク',
+            'due_date' => '2026-06-11',
+            'category' => TaskCategory::Other,
+            'location' => null,
+            'status' => TaskStatus::Pending,
+        ]);
+
+        Task::factory()->create([
+            'title' => '更新手続き',
+            'due_date' => '2026-06-20',
+            'category' => TaskCategory::Hobby,
+            'location' => null,
+            'status' => TaskStatus::Pending,
+        ]);
+
+        Task::factory()->create([
+            'title' => '期限なしメモ',
+            'due_date' => null,
+            'status' => TaskStatus::Pending,
+        ]);
+
+        Task::factory()->create([
+            'title' => '完了済み',
+            'due_date' => '2026-06-07',
+            'status' => TaskStatus::Completed,
+        ]);
+
         $slackApi = Mockery::mock(SlackApiClient::class);
         $channelResolver = Mockery::mock(SlackChannelResolver::class);
         $channelResolver->shouldReceive('resolveTodayChannel')->once()->andReturn('CKYOU');
@@ -43,9 +81,15 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $slackApi->shouldReceive('postMessage')
             ->once()
             ->with('CKYOU', Mockery::on(function (string $message): bool {
-                return str_contains($message, '本日（2026-06-08）が期限のタスク')
-                    && str_contains($message, '1. 歯医者（仕事 / 場所: 新宿）')
-                    && str_contains($message, '全1件');
+                return str_contains($message, '期限付き未完了タスク（2026-06-08時点）')
+                    && str_contains($message, '近い順: 🔴期限切れ / 🟠今日 / 🟡3日以内 / 🔵7日以内 / 🟢8日以上')
+                    && str_contains($message, '1. 🔴 期限切れ（2日遅れ） 2026-06-06｜期限切れの提出（仕事 / 場所: オフィス）')
+                    && str_contains($message, '2. 🟠 今日 2026-06-08｜歯医者（仕事 / 場所: 新宿）')
+                    && str_contains($message, '3. 🟡 あと3日 2026-06-11｜未解析タスク（その他 / 場所: 未設定）')
+                    && str_contains($message, '4. 🟢 あと12日 2026-06-20｜更新手続き（趣味 / 場所: 未設定）')
+                    && str_contains($message, '全4件')
+                    && ! str_contains($message, '期限なしメモ')
+                    && ! str_contains($message, '完了済み');
             }))
             ->andReturn('1234.5678');
 
@@ -108,7 +152,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $slackApi->shouldReceive('postMessage')
             ->once()
             ->with('CKYOU', Mockery::on(function (string $message): bool {
-                return str_contains($message, '1. 買い物（趣味 / 場所: 未設定）');
+                return str_contains($message, '1. 🟠 今日 2026-06-08｜買い物（趣味 / 場所: 未設定）');
             }))
             ->andReturn('9999.0001');
 
@@ -116,14 +160,20 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $service->sync();
     }
 
-    public function test_sync_posts_empty_message_when_no_tasks_due_today(): void
+    public function test_sync_posts_empty_message_when_no_open_tasks_with_due_dates(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-08 09:00:00', 'Asia/Tokyo'));
 
         Task::factory()->create([
-            'title' => '明日の予定',
-            'due_date' => '2026-06-09',
+            'title' => '期限なしメモ',
+            'due_date' => null,
             'status' => TaskStatus::Pending,
+        ]);
+
+        Task::factory()->create([
+            'title' => '完了済み',
+            'due_date' => '2026-06-08',
+            'status' => TaskStatus::Completed,
         ]);
 
         $slackApi = Mockery::mock(SlackApiClient::class);
@@ -132,7 +182,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
 
         $slackApi->shouldReceive('postMessage')
             ->once()
-            ->with('CKYOU', Mockery::on(fn (string $message): bool => str_contains($message, '（なし）')))
+            ->with('CKYOU', Mockery::on(fn (string $message): bool => str_contains($message, '（期限付きの未完了タスクなし）')))
             ->andReturn('1234.5678');
 
         $service = new TodayDueTasksSlackService($slackApi, $channelResolver);

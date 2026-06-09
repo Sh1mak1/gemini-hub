@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Support\DisplayTime;
 use App\Support\OperationLogger;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
@@ -91,7 +92,7 @@ class TodayDueTasksSlackService
      */
     private function buildPayload(string $date): array
     {
-        $tasks = $this->fetchTodayDueTasks();
+        $tasks = $this->fetchOpenDueTasks();
         $text = $this->formatMessage($date, $tasks);
         $hash = hash('sha256', $this->serializeTasksForHash($tasks));
 
@@ -103,48 +104,59 @@ class TodayDueTasksSlackService
     }
 
     /**
-     * @return Collection<int, array{source: string, id: int, title: string, due_date: ?string, category: string, location: ?string}>
+     * @return Collection<int, array{source: string, id: int, title: string, due_date: ?string, days_until_due: int, category: string, location: ?string}>
      */
-    private function fetchTodayDueTasks(): Collection
+    private function fetchOpenDueTasks(): Collection
     {
         $today = DisplayTime::today();
 
         $tasks = Task::query()
             ->pending()
-            ->whereDate('due_date', $today)
+            ->whereNotNull('due_date')
             ->orderBy('due_date')
             ->orderBy('id')
             ->get()
-            ->map(fn (Task $task) => $this->normalizeTask($task, 'ai'));
+            ->map(fn (Task $task) => $this->normalizeTask($task, 'ai', $today));
 
         $fallbackTasks = FallbackTask::query()
             ->pending()
-            ->whereDate('due_date', $today)
+            ->whereNotNull('due_date')
             ->orderBy('due_date')
             ->orderBy('id')
             ->get()
-            ->map(fn (FallbackTask $task) => $this->normalizeTask($task, 'fallback'));
+            ->map(fn (FallbackTask $task) => $this->normalizeTask($task, 'fallback', $today));
 
-        return $tasks->merge($fallbackTasks)->values();
+        return $tasks
+            ->merge($fallbackTasks)
+            ->sortBy(fn (array $task) => sprintf(
+                '%s|%s|%010d',
+                $task['due_date'] ?? '9999-99-99',
+                $task['source'],
+                $task['id'],
+            ))
+            ->values();
     }
 
     /**
-     * @return array{source: string, id: int, title: string, due_date: ?string, category: string, location: ?string}
+     * @return array{source: string, id: int, title: string, due_date: ?string, days_until_due: int, category: string, location: ?string}
      */
-    private function normalizeTask(Task|FallbackTask $task, string $source): array
+    private function normalizeTask(Task|FallbackTask $task, string $source, CarbonInterface $today): array
     {
+        $dueDate = $task->due_date?->copy()->startOfDay();
+
         return [
             'source' => $source,
             'id' => $task->id,
             'title' => $task->title,
-            'due_date' => $task->due_date?->format('Y-m-d'),
+            'due_date' => $dueDate?->format('Y-m-d'),
+            'days_until_due' => $dueDate === null ? 0 : (int) $today->diffInDays($dueDate, false),
             'category' => $task->category->label(),
             'location' => $task->location,
         ];
     }
 
     /**
-     * @param  Collection<int, array{source: string, id: int, title: string, due_date: ?string, category: string, location: ?string}>  $tasks
+     * @param  Collection<int, array{source: string, id: int, title: string, due_date: ?string, days_until_due: int, category: string, location: ?string}>  $tasks
      */
     private function serializeTasksForHash(Collection $tasks): string
     {
@@ -154,6 +166,7 @@ class TodayDueTasksSlackService
                 (string) $task['id'],
                 $task['title'],
                 $task['due_date'] ?? '',
+                (string) $task['days_until_due'],
                 $task['category'],
                 $task['location'] ?? '',
             ]))
@@ -161,14 +174,18 @@ class TodayDueTasksSlackService
     }
 
     /**
-     * @param  Collection<int, array{source: string, id: int, title: string, due_date: ?string, category: string, location: ?string}>  $tasks
+     * @param  Collection<int, array{source: string, id: int, title: string, due_date: ?string, days_until_due: int, category: string, location: ?string}>  $tasks
      */
     private function formatMessage(string $date, Collection $tasks): string
     {
-        $lines = ["📋 本日（{$date}）が期限のタスク", ''];
+        $lines = [
+            "📋 期限付き未完了タスク（{$date}時点）",
+            '近い順: 🔴期限切れ / 🟠今日 / 🟡3日以内 / 🔵7日以内 / 🟢8日以上',
+            '',
+        ];
 
         if ($tasks->isEmpty()) {
-            $lines[] = '（なし）';
+            $lines[] = '（期限付きの未完了タスクなし）';
 
             return implode("\n", $lines);
         }
@@ -176,13 +193,40 @@ class TodayDueTasksSlackService
         foreach ($tasks->values() as $index => $task) {
             $number = $index + 1;
             $location = $task['location'] ?? '未設定';
-            $lines[] = "{$number}. {$task['title']}（{$task['category']} / 場所: {$location}）";
+            $dueStatus = $this->formatDueStatus($task['days_until_due']);
+            $dueDate = $task['due_date'] ?? '未設定';
+            $lines[] = "{$number}. {$dueStatus} {$dueDate}｜{$task['title']}（{$task['category']} / 場所: {$location}）";
         }
 
         $lines[] = '';
         $lines[] = "全{$tasks->count()}件";
 
         return implode("\n", $lines);
+    }
+
+    private function formatDueStatus(int $daysUntilDue): string
+    {
+        if ($daysUntilDue < 0) {
+            return '🔴 期限切れ（'.abs($daysUntilDue).'日遅れ）';
+        }
+
+        if ($daysUntilDue === 0) {
+            return '🟠 今日';
+        }
+
+        if ($daysUntilDue === 1) {
+            return '🟡 明日';
+        }
+
+        if ($daysUntilDue <= 3) {
+            return "🟡 あと{$daysUntilDue}日";
+        }
+
+        if ($daysUntilDue <= 7) {
+            return "🔵 あと{$daysUntilDue}日";
+        }
+
+        return "🟢 あと{$daysUntilDue}日";
     }
 
     private function getPostState(string $date): ?TodayDueTasksSlackPostState
