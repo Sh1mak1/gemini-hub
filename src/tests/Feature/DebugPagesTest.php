@@ -11,6 +11,25 @@ class DebugPagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->clearOperationLogs();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->clearOperationLogs();
+        parent::tearDown();
+    }
+
+    private function clearOperationLogs(): void
+    {
+        foreach (glob(storage_path('logs/operations-*.log')) ?: [] as $file) {
+            File::delete($file);
+        }
+    }
+
     public function test_guest_cannot_view_debug_pages(): void
     {
         $this->get(route('debug.logs'))->assertRedirect(route('login'));

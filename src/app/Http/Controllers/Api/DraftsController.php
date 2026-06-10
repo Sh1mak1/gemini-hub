@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\FallbackTask;
-use App\Models\Task;
+use App\Jobs\ProcessDraftsTaskQueueJob;
 use App\Services\Drafts\DraftsDiffService;
 use App\Services\Drafts\DraftsTaskCache;
-use App\Services\Drafts\DraftsTaskCreateService;
 use App\Services\Drafts\DraftsTaskListService;
-use App\Services\Slack\SlackNotificationService;
+use App\Services\Drafts\DraftsTaskQueueService;
 use App\Support\OperationLogger;
 use App\Support\TodayDueTasksSlackDispatcher;
 use Illuminate\Http\Request;
@@ -32,10 +30,7 @@ class DraftsController extends Controller
 
     public function store(
         Request $request,
-        DraftsTaskCreateService $createService,
-        DraftsTaskListService $taskListService,
-        SlackNotificationService $slackNotification,
-        TodayDueTasksSlackDispatcher $todayDueTasksSlack,
+        DraftsTaskQueueService $queueService,
     ): Response {
         $input = $this->extractRequestText($request);
 
@@ -45,35 +40,18 @@ class DraftsController extends Controller
             ]);
         }
 
-        $createdIds = $createService->createFromInput($input);
+        $item = $queueService->enqueue($input);
 
-        OperationLogger::info('drafts.add', $createdIds === [] ? 'no_tasks_created' : 'success', [
-            'created_ids' => $createdIds,
+        ProcessDraftsTaskQueueJob::dispatch();
+
+        OperationLogger::info('drafts.add', 'accepted', [
+            'queue_id' => $item->id,
             'input_preview' => mb_substr($input, 0, 100),
         ]);
 
-        if ($createdIds === []) {
-            return response(
-                "タスクを追加できませんでした。入力内容を確認してください。\n",
-                422,
-                ['Content-Type' => 'text/plain; charset=UTF-8'],
-            );
-        }
-
-        foreach ($createdIds as $ref) {
-            $task = $this->findCreatedTask($ref);
-
-            if ($task !== null) {
-                $slackNotification->notifyTaskCreated($task);
-            }
-        }
-
-        $text = $taskListService->fetchAndCache();
-        $todayDueTasksSlack->dispatchNow();
-
-        return response($text, 200, [
+        return response("タスクを受け付けました。\n", 202, [
             'Content-Type' => 'text/plain; charset=UTF-8',
-            'X-Tasks-Created' => implode(',', $createdIds),
+            'X-Queue-Id' => (string) $item->id,
         ]);
     }
 
@@ -120,32 +98,25 @@ class DraftsController extends Controller
         ]);
     }
 
-    private function findCreatedTask(string $ref): Task|FallbackTask|null
-    {
-        [$source, $id] = array_pad(explode(':', $ref, 2), 2, null);
-
-        if (! is_string($source) || ! is_string($id) || ! ctype_digit($id)) {
-            return null;
-        }
-
-        return match ($source) {
-            'ai' => Task::query()->find((int) $id),
-            'fallback' => FallbackTask::query()->find((int) $id),
-            default => null,
-        };
-    }
-
     private function extractRequestText(Request $request): string
     {
+        foreach (['text', 'content'] as $key) {
+            $value = $request->input($key);
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
         $rawBody = $request->getContent();
 
-        if (is_string($rawBody) && trim($rawBody) !== '') {
-            $contentType = $request->header('Content-Type', '');
+        if (! is_string($rawBody) || trim($rawBody) === '') {
+            return '';
+        }
 
-            if (! is_string($contentType) || ! str_contains($contentType, 'application/json')) {
-                return trim($rawBody);
-            }
+        $contentType = $request->header('Content-Type', '');
 
+        if (is_string($contentType) && str_contains($contentType, 'application/json')) {
             $decoded = json_decode($rawBody, true);
 
             if (is_array($decoded)) {
@@ -157,16 +128,21 @@ class DraftsController extends Controller
                     }
                 }
             }
+
+            return '';
         }
 
+        $parsed = [];
+        parse_str($rawBody, $parsed);
+
         foreach (['text', 'content'] as $key) {
-            $value = $request->input($key);
+            $value = $parsed[$key] ?? null;
 
             if (is_string($value) && trim($value) !== '') {
                 return trim($value);
             }
         }
 
-        return '';
+        return trim($rawBody);
     }
 }

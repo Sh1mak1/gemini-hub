@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('slack:post-today-tasks')
     ->dailyAt(sprintf('%02d:00', (int) config('services.slack.today.post_hour', 9)))
     ->timezone(config('app.display_timezone', 'Asia/Tokyo'));
+
+Schedule::command('drafts:process-queue')
+    ->everyThreeMinutes()
+    ->withoutOverlapping();

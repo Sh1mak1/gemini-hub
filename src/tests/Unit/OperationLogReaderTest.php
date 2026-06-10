@@ -8,6 +8,25 @@ use Tests\TestCase;
 
 class OperationLogReaderTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->clearOperationLogs();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->clearOperationLogs();
+        parent::tearDown();
+    }
+
+    private function clearOperationLogs(): void
+    {
+        foreach (glob(storage_path('logs/operations-*.log')) ?: [] as $file) {
+            File::delete($file);
+        }
+    }
+
     public function test_log_timestamps_are_converted_to_display_timezone(): void
     {
         $logPath = storage_path('logs/operations-2026-06-07.log');
