@@ -181,7 +181,6 @@ class TodayDueTasksSlackService
     {
         $lines = [
             "📋 期限付き未完了タスク（{$date}時点）",
-            '各タスク名の次行に、今日から期日までの横棒を表示します（最大30日、+ はそれ以上）。',
             '',
         ];
 
@@ -191,18 +190,14 @@ class TodayDueTasksSlackService
             return implode("\n", $lines);
         }
 
-        $lines[] = '凡例: D- = 期限切れ / D+0 = 今日 / D+N = あとN日';
-        $lines[] = '';
-
         foreach ($tasks->values() as $index => $task) {
             $number = $index + 1;
             $location = $task['location'] ?? '未設定';
             $dueStatus = $this->formatDueStatus($task['days_until_due']);
             $dueDate = $task['due_date'] ?? '未設定';
-            $delta = $this->formatGanttDelta($task['days_until_due']);
             $bar = $this->formatGanttBar($task['days_until_due']);
             $lines[] = "{$number}. {$dueStatus} {$dueDate}｜{$task['title']}（{$task['category']} / 場所: {$location}）";
-            $lines[] = "   `{$delta} {$bar}`";
+            $lines[] = "   `{$bar}`";
         }
 
         $lines[] = '';
@@ -211,53 +206,42 @@ class TodayDueTasksSlackService
         return implode("\n", $lines);
     }
 
-    private function formatGanttDelta(int $daysUntilDue): string
-    {
-        if ($daysUntilDue < 0) {
-            return 'D'.$daysUntilDue;
-        }
-
-        return 'D+'.$daysUntilDue;
-    }
-
     private function formatGanttBar(int $daysUntilDue): string
     {
         if ($daysUntilDue < 0) {
-            $visibleDays = min(abs($daysUntilDue), self::GANTT_MAX_DAYS);
-            $overflow = abs($daysUntilDue) > self::GANTT_MAX_DAYS ? '+' : '';
-
-            return '<'.str_repeat('-', $visibleDays).'!'.$overflow;
+            return '!*';
         }
 
         $visibleDays = min($daysUntilDue, self::GANTT_MAX_DAYS);
         $overflow = $daysUntilDue > self::GANTT_MAX_DAYS ? '+' : '';
 
-        return '|'.str_repeat('-', $visibleDays).'*'.$overflow;
+        return $this->formatDaySequence($visibleDays).$overflow.'*';
+    }
+
+    private function formatDaySequence(int $days): string
+    {
+        if ($days === 0) {
+            return '';
+        }
+
+        return Collection::times($days, fn (int $day) => (string) $day)->implode('');
     }
 
     private function formatDueStatus(int $daysUntilDue): string
     {
         if ($daysUntilDue < 0) {
-            return '🔴 期限切れ（'.abs($daysUntilDue).'日遅れ）';
+            return '期限切れ（'.abs($daysUntilDue).'日遅れ）';
         }
 
         if ($daysUntilDue === 0) {
-            return '🟠 今日';
+            return '今日';
         }
 
         if ($daysUntilDue === 1) {
-            return '🟡 明日';
+            return '明日';
         }
 
-        if ($daysUntilDue <= 3) {
-            return "🟡 あと{$daysUntilDue}日";
-        }
-
-        if ($daysUntilDue <= 7) {
-            return "🔵 あと{$daysUntilDue}日";
-        }
-
-        return "🟢 あと{$daysUntilDue}日";
+        return "あと{$daysUntilDue}日";
     }
 
     private function getPostState(string $date): ?TodayDueTasksSlackPostState
