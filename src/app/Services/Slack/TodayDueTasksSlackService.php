@@ -209,13 +209,13 @@ class TodayDueTasksSlackService
     private function formatGanttBar(int $daysUntilDue): string
     {
         if ($daysUntilDue < 0) {
-            return '!*';
+            return '💥';
         }
 
         $visibleDays = min($daysUntilDue, self::GANTT_MAX_DAYS);
         $overflow = $daysUntilDue > self::GANTT_MAX_DAYS ? '+' : '';
 
-        return $this->formatDaySequence($visibleDays).$overflow.'*';
+        return '💣:'.$this->formatDaySequence($visibleDays).$overflow.'🔥';
     }
 
     private function formatDaySequence(int $days): string

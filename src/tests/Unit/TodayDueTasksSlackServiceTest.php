@@ -45,6 +45,14 @@ class TodayDueTasksSlackServiceTest extends TestCase
             'status' => TaskStatus::Pending,
         ]);
 
+        Task::factory()->create([
+            'title' => '明日の支払い',
+            'due_date' => '2026-06-09',
+            'category' => TaskCategory::Other,
+            'location' => null,
+            'status' => TaskStatus::Pending,
+        ]);
+
         FallbackTask::factory()->create([
             'title' => '未解析タスク',
             'raw_input' => '未解析タスク',
@@ -83,14 +91,16 @@ class TodayDueTasksSlackServiceTest extends TestCase
             ->with('CKYOU', Mockery::on(function (string $message): bool {
                 return str_contains($message, '期限付き未完了タスク（2026-06-08時点）')
                     && str_contains($message, '1. 期限切れ（2日遅れ） 2026-06-06｜期限切れの提出（仕事 / 場所: オフィス）')
-                    && str_contains($message, '   `!*`')
+                    && str_contains($message, '   `💥`')
                     && str_contains($message, '2. 今日 2026-06-08｜歯医者（仕事 / 場所: 新宿）')
-                    && str_contains($message, '   `*`')
-                    && str_contains($message, '3. あと3日 2026-06-11｜未解析タスク（その他 / 場所: 未設定）')
-                    && str_contains($message, '   `123*`')
-                    && str_contains($message, '4. あと12日 2026-06-20｜更新手続き（趣味 / 場所: 未設定）')
-                    && str_contains($message, '   `123456789101112*`')
-                    && str_contains($message, '全4件')
+                    && str_contains($message, '   `💣:🔥`')
+                    && str_contains($message, '3. 明日 2026-06-09｜明日の支払い（その他 / 場所: 未設定）')
+                    && str_contains($message, '   `💣:1🔥`')
+                    && str_contains($message, '4. あと3日 2026-06-11｜未解析タスク（その他 / 場所: 未設定）')
+                    && str_contains($message, '   `💣:123🔥`')
+                    && str_contains($message, '5. あと12日 2026-06-20｜更新手続き（趣味 / 場所: 未設定）')
+                    && str_contains($message, '   `💣:123456789101112🔥`')
+                    && str_contains($message, '全5件')
                     && ! str_contains($message, '凡例:')
                     && ! str_contains($message, 'D+')
                     && ! str_contains($message, 'D-')
@@ -163,7 +173,7 @@ class TodayDueTasksSlackServiceTest extends TestCase
         $slackApi->shouldReceive('postMessage')
             ->once()
             ->with('CKYOU', Mockery::on(function (string $message): bool {
-                return str_contains($message, '   `*`')
+                return str_contains($message, '   `💣:🔥`')
                     && str_contains($message, '1. 今日 2026-06-08｜買い物（趣味 / 場所: 未設定）');
             }))
             ->andReturn('9999.0001');
