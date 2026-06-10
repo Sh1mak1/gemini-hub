@@ -181,7 +181,7 @@ class TodayDueTasksSlackService
     {
         $lines = [
             "📋 期限付き未完了タスク（{$date}時点）",
-            '今日から期日までの長さを横棒で表示します（最大30日、+ はそれ以上）。',
+            '各タスク名の次行に、今日から期日までの横棒を表示します（最大30日、+ はそれ以上）。',
             '',
         ];
 
@@ -191,19 +191,6 @@ class TodayDueTasksSlackService
             return implode("\n", $lines);
         }
 
-        $lines[] = '```text';
-        $lines[] = 'No  期日        差分   今日 -> 期日';
-
-        foreach ($tasks->values() as $index => $task) {
-            $number = $index + 1;
-            $dueDate = $task['due_date'] ?? '未設定';
-            $delta = $this->formatGanttDelta($task['days_until_due']);
-            $bar = $this->formatGanttBar($task['days_until_due']);
-            $lines[] = sprintf('%02d  %s  %-5s  %s', $number, $dueDate, $delta, $bar);
-        }
-
-        $lines[] = '```';
-        $lines[] = '';
         $lines[] = '凡例: D- = 期限切れ / D+0 = 今日 / D+N = あとN日';
         $lines[] = '';
 
@@ -212,7 +199,10 @@ class TodayDueTasksSlackService
             $location = $task['location'] ?? '未設定';
             $dueStatus = $this->formatDueStatus($task['days_until_due']);
             $dueDate = $task['due_date'] ?? '未設定';
+            $delta = $this->formatGanttDelta($task['days_until_due']);
+            $bar = $this->formatGanttBar($task['days_until_due']);
             $lines[] = "{$number}. {$dueStatus} {$dueDate}｜{$task['title']}（{$task['category']} / 場所: {$location}）";
+            $lines[] = "   `{$delta} {$bar}`";
         }
 
         $lines[] = '';
