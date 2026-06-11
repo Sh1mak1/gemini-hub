@@ -3,8 +3,10 @@
 namespace App\Services\Slack;
 
 use App\Data\GeminiExtractionFailure;
+use App\Enums\TaskCategory;
 use App\Models\FallbackTask;
 use App\Models\Task;
+use App\Support\DisplayTime;
 use App\Support\OperationLogger;
 use Throwable;
 
@@ -20,14 +22,14 @@ class SlackNotificationService
         ?string $sourceChannelId = null,
         ?GeminiExtractionFailure $geminiFailure = null,
     ): void {
-        $channelId = $this->channelResolver->resolveForCategory($task->category)
-            ?? $sourceChannelId;
+        $channelIds = $this->resolveTargetChannelIds($task, $sourceChannelId);
 
-        if ($channelId === null) {
+        if ($channelIds === []) {
             OperationLogger::warning('slack.notify', 'channel_not_found', [
                 'category' => $task->category->value,
                 'task_id' => $task->id,
                 'task_source' => $task instanceof FallbackTask ? 'fallback' : 'ai',
+                'due_today' => $this->isDueToday($task),
             ]);
 
             return;
@@ -35,6 +37,58 @@ class SlackNotificationService
 
         $message = $this->buildTaskCreatedMessage($task, $geminiFailure);
 
+        foreach ($channelIds as $channelId) {
+            $this->postToChannel($task, $channelId, $message, $sourceChannelId, $geminiFailure);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveTargetChannelIds(
+        Task|FallbackTask $task,
+        ?string $sourceChannelId,
+    ): array {
+        $channelIds = [];
+
+        $categoryChannelId = $this->channelResolver->resolveForCategory($task->category);
+
+        if ($categoryChannelId !== null) {
+            $channelIds[] = $categoryChannelId;
+        } elseif (
+            $task->category === TaskCategory::Other
+            && $sourceChannelId !== null
+        ) {
+            $channelIds[] = $sourceChannelId;
+        }
+
+        if ($this->isDueToday($task)) {
+            $todayChannelId = $this->channelResolver->resolveTodayChannel();
+
+            if ($todayChannelId !== null) {
+                $channelIds[] = $todayChannelId;
+            }
+        }
+
+        return array_values(array_unique($channelIds));
+    }
+
+    private function isDueToday(Task|FallbackTask $task): bool
+    {
+        if ($task->due_date === null) {
+            return false;
+        }
+
+        return $task->due_date->format('Y-m-d') === DisplayTime::today()->format('Y-m-d');
+    }
+
+    private function postToChannel(
+        Task|FallbackTask $task,
+        string $channelId,
+        string $message,
+        ?string $sourceChannelId,
+        ?GeminiExtractionFailure $geminiFailure,
+    ): void {
         try {
             $this->slackApi->postMessage($channelId, $message);
         } catch (Throwable $exception) {
@@ -54,6 +108,7 @@ class SlackNotificationService
             'task_source' => $task instanceof FallbackTask ? 'fallback' : 'ai',
             'channel_id' => $channelId,
             'category' => $task->category->value,
+            'due_today' => $this->isDueToday($task),
             'used_source_channel' => $sourceChannelId !== null && $channelId === $sourceChannelId,
             'gemini_error_status' => $geminiFailure?->status,
         ]);

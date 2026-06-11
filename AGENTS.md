@@ -2,6 +2,8 @@
 
 Cloud Agent / Cursor Agent 向けオンボーディング。本ファイルと `docs/DEPLOY.md` を最初に読むこと。
 
+**実装開始前:** `git fetch origin main` → `git status` / `git pull` で最新の `main` を確認してから作業すること（ローカル Agent は `work-logs/PROJECT_GUIDE.md` の「実装開始前（必須）」も参照）。
+
 ## プロジェクト概要
 
 Slack や iOS Drafts からタスクを入力し、**Gemini API** で構造化して **PostgreSQL** に保存する**個人専用** ToDo システム。

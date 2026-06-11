@@ -16,5 +16,3 @@ work-logs/
 specifications/
 
 # ngrok local config
-.ngrok2/
-ngrok.yml
