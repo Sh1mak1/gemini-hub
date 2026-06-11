@@ -15,7 +15,9 @@ const CATEGORY_COLORS = {
     },
 };
 
-const LABEL_COLUMN_WIDTH = '220px';
+const LABEL_COLUMN_WIDTH = '160px';
+const ROW_HEIGHT = '2.75rem';
+const VISIBLE_ROWS = 3;
 
 function parseDate(value) {
     return new Date(`${value}T00:00:00`);
@@ -41,9 +43,32 @@ function daysBetween(start, end) {
     );
 }
 
+function distanceFromToday(task, today) {
+    const anchor = task.due_date
+        ? parseDate(task.due_date)
+        : parseDate(task.timeline_end);
+
+    return Math.abs(anchor.getTime() - today.getTime());
+}
+
+function sortByNearestToToday(tasks) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return [...tasks].sort((a, b) => {
+        if (a.status !== b.status) {
+            return a.status === 'pending' ? -1 : 1;
+        }
+
+        return distanceFromToday(a, today) - distanceFromToday(b, today);
+    });
+}
+
 export default function TaskTimeline({ tasks }) {
     const { rangeStart, totalDays, ticks, rows } = useMemo(() => {
-        if (!tasks.length) {
+        const sortedTasks = sortByNearestToToday(tasks);
+
+        if (!sortedTasks.length) {
             return {
                 rangeStart: null,
                 totalDays: 1,
@@ -52,8 +77,8 @@ export default function TaskTimeline({ tasks }) {
             };
         }
 
-        const starts = tasks.map((task) => parseDate(task.start_date));
-        const ends = tasks.map((task) => parseDate(task.timeline_end));
+        const starts = sortedTasks.map((task) => parseDate(task.start_date));
+        const ends = sortedTasks.map((task) => parseDate(task.timeline_end));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -74,7 +99,7 @@ export default function TaskTimeline({ tasks }) {
             tickMarks.push(addDays(start, i));
         }
 
-        const computedRows = tasks.map((task) => {
+        const computedRows = sortedTasks.map((task) => {
             const taskStart = parseDate(task.start_date);
             const taskEnd = parseDate(task.timeline_end);
             const offsetDays = daysBetween(start, taskStart) - 1;
@@ -97,7 +122,7 @@ export default function TaskTimeline({ tasks }) {
 
     if (!tasks.length) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
                 タイムラインに表示するタスクがありません
             </div>
         );
@@ -112,28 +137,30 @@ export default function TaskTimeline({ tasks }) {
     const showTodayMarker = todayOffset >= 0 && todayOffset <= 100;
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40">
-            <div className="border-b border-slate-100 px-6 py-4 dark:border-slate-800">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 dark:border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     タイムライン
                 </h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    開始日から期日までの流れを可視化しています
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    期日が近い順 · スクロールで全件
                 </p>
             </div>
 
-            <div className="overflow-x-auto">
-                <div className="min-w-[760px]">
-                    {/* ヘッダー */}
-                    <div className="flex border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/60">
+            <div
+                className="overflow-auto"
+                style={{ maxHeight: `calc(${ROW_HEIGHT} * ${VISIBLE_ROWS} + 2.5rem)` }}
+            >
+                <div className="min-w-[640px]">
+                    <div className="sticky top-0 z-30 flex border-b border-slate-100 bg-slate-50/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
                         <div
-                            className="shrink-0 border-r border-slate-200 px-4 py-3 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400"
+                            className="sticky left-0 z-40 shrink-0 border-r border-slate-200 bg-slate-50/95 px-3 py-2 text-[10px] font-medium text-slate-500 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-400"
                             style={{ width: LABEL_COLUMN_WIDTH }}
                         >
                             タスク
                         </div>
-                        <div className="relative min-w-0 flex-1 px-4 py-3">
-                            <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
+                        <div className="relative min-w-0 flex-1 px-3 py-2">
+                            <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500">
                                 {ticks.map((tick) => (
                                     <span key={tick.toISOString()}>
                                         {formatShortDate(
@@ -147,7 +174,7 @@ export default function TaskTimeline({ tasks }) {
                                     className="pointer-events-none absolute top-1 z-20 -translate-x-1/2"
                                     style={{ left: `${todayOffset}%` }}
                                 >
-                                    <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                                    <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-semibold text-white">
                                         今日
                                     </span>
                                 </div>
@@ -155,10 +182,9 @@ export default function TaskTimeline({ tasks }) {
                         </div>
                     </div>
 
-                    {/* 本体: ラベル列 + チャート列（今日ラインは1本のみ） */}
                     <div className="flex">
                         <div
-                            className="shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                            className="sticky left-0 z-20 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
                             style={{ width: LABEL_COLUMN_WIDTH }}
                         >
                             {rows.map((task) => {
@@ -170,31 +196,23 @@ export default function TaskTimeline({ tasks }) {
 
                                 return (
                                     <div
-                                        key={`${task.source}-${task.id}`}
-                                        className="border-b border-slate-100 px-4 py-4 last:border-b-0 dark:border-slate-800"
+                                        key={`${task.source}-${task.id}-label`}
+                                        className="flex items-center border-b border-slate-100 px-3 last:border-b-0 dark:border-slate-800"
+                                        style={{ height: ROW_HEIGHT }}
                                     >
-                                        <div className="flex items-start gap-2">
+                                        <div className="flex min-w-0 items-center gap-1.5">
                                             <span
-                                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${colors.dot}`}
+                                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${colors.dot}`}
                                             />
                                             <div className="min-w-0">
                                                 <p
-                                                    className={`text-sm font-semibold leading-snug ${isCompleted ? 'text-slate-400 line-through dark:text-slate-600' : 'text-slate-900 dark:text-slate-100'}`}
+                                                    className={`truncate text-xs font-medium leading-tight ${isCompleted ? 'text-slate-400 line-through dark:text-slate-600' : 'text-slate-900 dark:text-slate-100'}`}
+                                                    title={task.title}
                                                 >
                                                     {task.title}
                                                 </p>
-                                                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                                    開始{' '}
-                                                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                                                        {task.start_date}
-                                                    </span>
-                                                </p>
-                                                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                                    期日{' '}
-                                                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                                                        {task.due_date ??
-                                                            '未設定'}
-                                                    </span>
+                                                <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">
+                                                    {task.due_date ?? '期日未設定'}
                                                 </p>
                                             </div>
                                         </div>
@@ -203,11 +221,11 @@ export default function TaskTimeline({ tasks }) {
                             })}
                         </div>
 
-                        <div className="relative min-w-0 flex-1 bg-slate-50/60 px-4 dark:bg-slate-950/70">
+                        <div className="relative min-w-0 flex-1 bg-slate-50/60 dark:bg-slate-950/70">
                             {showTodayMarker && (
-                                <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-10">
+                                <div className="pointer-events-none absolute inset-y-0 left-3 right-3 z-10">
                                     <div
-                                        className="absolute top-0 bottom-0 w-1 -translate-x-1/2 rounded-full bg-rose-500 shadow-[0_0_0_2px_rgba(244,63,94,0.15)]"
+                                        className="absolute top-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-rose-500"
                                         style={{ left: `${todayOffset}%` }}
                                     />
                                 </div>
@@ -222,19 +240,18 @@ export default function TaskTimeline({ tasks }) {
 
                                 return (
                                     <div
-                                        key={`${task.source}-${task.id}`}
-                                        className="border-b border-slate-100 py-4 last:border-b-0 dark:border-slate-800"
+                                        key={`${task.source}-${task.id}-bar`}
+                                        className="flex items-center border-b border-slate-100 px-3 last:border-b-0 dark:border-slate-800"
+                                        style={{ height: ROW_HEIGHT }}
                                     >
-                                        <div className="relative h-8 rounded-lg bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
+                                        <div className="relative h-5 w-full rounded bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
                                             <div
-                                                className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-gradient-to-r shadow-sm ${colors.bar} ${isCompleted ? 'opacity-35' : 'opacity-95'}`}
+                                                className={`absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r ${colors.bar} ${isCompleted ? 'opacity-35' : 'opacity-95'}`}
                                                 style={{
                                                     left: `${task.offsetPercent}%`,
                                                     width: `${task.widthPercent}%`,
                                                 }}
-                                            >
-                                                <span className="absolute -right-0.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 rounded-sm bg-white shadow dark:bg-slate-200" />
-                                            </div>
+                                            />
                                         </div>
                                     </div>
                                 );
