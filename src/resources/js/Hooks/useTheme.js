@@ -43,7 +43,7 @@ export function applyTheme(theme) {
     const root = document.documentElement;
 
     root.setAttribute('data-theme', theme);
-    root.classList.toggle('dark', theme === 'dark');
+    root.classList.toggle('dark', theme === 'dark' || theme === 'cyber');
 }
 
 export default function useTheme() {
@@ -106,7 +106,7 @@ export default function useTheme() {
 
     return {
         theme,
-        isDark: theme === 'dark',
+        isDark: theme === 'dark' || theme === 'cyber',
         isCyber: theme === 'cyber',
         setTheme: setThemeWithSync,
         cycleTheme,
