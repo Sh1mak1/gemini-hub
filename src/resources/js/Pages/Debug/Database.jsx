@@ -1,3 +1,4 @@
+import AppSectionTabs from '@/Components/AppSectionTabs';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 
@@ -33,6 +34,8 @@ export default function Database({ tables, selectedTable, tableData }) {
 
             <div className="bg-gradient-to-b from-slate-100 via-white to-white py-8 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <AppSectionTabs activeTab="database" />
+
                     <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40 sm:p-6">
                         <div className="flex flex-wrap gap-2">
                             {tables.map((table) => (

@@ -1,3 +1,4 @@
+import AppSectionTabs from '@/Components/AppSectionTabs';
 import TaskTimeline from '@/Components/TaskTimeline';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
@@ -144,29 +145,13 @@ export default function Index({ pendingTasks, completedTasks, timelineTasks, sta
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">
-                            AI ToDo Manager
-                        </p>
-                        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                            タスク管理
-                        </h2>
-                    </div>
-                    <div className="flex gap-2">
-                        <Link
-                            href={route('debug.logs')}
-                            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-500/70 dark:hover:bg-slate-800 dark:hover:text-indigo-200"
-                        >
-                            操作ログ
-                        </Link>
-                        <Link
-                            href={route('debug.database')}
-                            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-500/70 dark:hover:bg-slate-800 dark:hover:text-indigo-200"
-                        >
-                            データベース
-                        </Link>
-                    </div>
+                <div>
+                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">
+                        AI ToDo Manager
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                        タスク管理
+                    </h2>
                 </div>
             }
         >
@@ -174,6 +159,8 @@ export default function Index({ pendingTasks, completedTasks, timelineTasks, sta
 
             <div className="bg-gradient-to-b from-slate-100 via-white to-white py-6 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
                 <div className="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    <AppSectionTabs activeTab="tasks" />
+
                     <section className="flex flex-wrap items-center gap-2">
                         <StatChip
                             label="未完了"
