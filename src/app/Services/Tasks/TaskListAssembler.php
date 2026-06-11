@@ -55,29 +55,18 @@ class TaskListAssembler
     public function timelineTasks(): Collection
     {
         $tasks = Task::query()
-            ->where(function ($query) {
-                $query->pending()
-                    ->orWhere(function ($query) {
-                        $query->completed()->where('updated_at', '>=', now()->subDays(30));
-                    });
-            })
+            ->pending()
             ->get()
             ->map(fn (Task $task) => $this->formatTask($task, 'ai'));
 
         $fallbackTasks = FallbackTask::query()
-            ->where(function ($query) {
-                $query->pending()
-                    ->orWhere(function ($query) {
-                        $query->completed()->where('updated_at', '>=', now()->subDays(30));
-                    });
-            })
+            ->pending()
             ->get()
             ->map(fn (FallbackTask $task) => $this->formatTask($task, 'fallback'));
 
         return $tasks
             ->merge($fallbackTasks)
             ->sortBy([
-                fn (array $task) => $task['status'] === 'completed' ? 1 : 0,
                 fn (array $task) => $task['due_date'] ?? '9999-99-99',
                 fn (array $task) => $task['updated_at'],
             ])

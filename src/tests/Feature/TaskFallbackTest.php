@@ -36,6 +36,20 @@ class TaskFallbackTest extends TestCase
         );
     }
 
+    public function test_timeline_excludes_completed_tasks(): void
+    {
+        $user = User::factory()->create();
+        Task::factory()->create(['title' => '未完了', 'status' => 'pending']);
+        Task::factory()->completed()->create(['title' => '完了済み']);
+
+        $response = $this->actingAs($user)->get(route('tasks.index'));
+
+        $response->assertOk()->assertInertia(fn ($page) => $page
+            ->has('timelineTasks', 1)
+            ->where('timelineTasks.0.title', '未完了')
+        );
+    }
+
     public function test_extraction_failure_persists_fallback_task(): void
     {
         $gemini = Mockery::mock(GeminiClient::class);
