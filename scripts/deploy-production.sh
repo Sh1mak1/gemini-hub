@@ -89,6 +89,10 @@ fi
 
 run systemctl restart laravel-queue
 
+# queue worker（root 経由）が作ったログ等を www-data が書けるよう毎回修正
+run docker compose exec -T --user root app chown -R www-data:www-data storage bootstrap/cache
+run docker compose exec -T --user root app chmod -R ug+rwx storage bootstrap/cache
+
 # --- 確認 ---
 
 run docker compose ps

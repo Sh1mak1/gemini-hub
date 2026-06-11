@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class OperationLogger
 {
@@ -35,9 +36,51 @@ class OperationLogger
      */
     private static function write(string $level, string $operation, string $step, array $context): void
     {
-        Log::channel('operations')->{$level}("[{$operation}] {$step}", array_merge([
+        try {
+            Log::channel('operations')->{$level}("[{$operation}] {$step}", array_merge([
+                'operation' => $operation,
+                'step' => $step,
+            ], $context));
+        } catch (Throwable $exception) {
+            self::logWriteFailure($level, $operation, $step, $context, $exception);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private static function logWriteFailure(
+        string $level,
+        string $operation,
+        string $step,
+        array $context,
+        Throwable $exception,
+    ): void {
+        $payload = [
+            'failed_at' => 'operations_channel_write',
+            'intended_level' => $level,
             'operation' => $operation,
             'step' => $step,
-        ], $context));
+            'operations_log_path' => config('logging.channels.operations.path'),
+            'context_keys' => array_keys($context),
+            'exception_class' => $exception::class,
+            'error' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+        ];
+
+        try {
+            Log::warning('[operation_logger] operations log write failed', $payload);
+        } catch (Throwable $fallbackException) {
+            try {
+                Log::channel('errorlog')->warning('[operation_logger] operations log write failed', array_merge($payload, [
+                    'fallback_log_failed' => true,
+                    'fallback_exception_class' => $fallbackException::class,
+                    'fallback_error' => $fallbackException->getMessage(),
+                ]));
+            } catch (Throwable) {
+                // ログ基盤自体が使えない場合は握りつぶす（リクエストを 500 にしない）
+            }
+        }
     }
 }
