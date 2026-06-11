@@ -8,13 +8,20 @@
                 try {
                     var storedTheme = window.localStorage.getItem('theme');
                     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    var root = document.documentElement;
 
-                    if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
-                        document.documentElement.classList.add('dark');
+                    if (storedTheme === 'cyber') {
+                        root.setAttribute('data-theme', 'cyber');
+                        root.classList.remove('dark');
+                    } else if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+                        root.setAttribute('data-theme', 'dark');
+                        root.classList.add('dark');
                     } else {
-                        document.documentElement.classList.remove('dark');
+                        root.setAttribute('data-theme', 'light');
+                        root.classList.remove('dark');
                     }
                 } catch (error) {
+                    document.documentElement.setAttribute('data-theme', 'light');
                     document.documentElement.classList.remove('dark');
                 }
             })();

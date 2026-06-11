@@ -1,0 +1,441 @@
+/* CYBER // neon terminal aesthetic — activated via html[data-theme="cyber"] */
+
+@import url('https://fonts.bunny.net/css?family=jetbrains-mono:400,500,700|share-tech-mono:400');
+
+html[data-theme='cyber'] {
+    color-scheme: dark;
+
+    --cp-bg-deep: #030308;
+    --cp-bg-base: #06060f;
+    --cp-bg-panel: #0a0a14;
+    --cp-bg-elevated: #0f0f1c;
+    --cp-bg-input: #080812;
+
+    --cp-neon-green: #00ff9f;
+    --cp-neon-cyan: #05d9e8;
+    --cp-neon-pink: #ff2a6d;
+    --cp-neon-yellow: #fcee0a;
+    --cp-neon-purple: #bd00ff;
+
+    --cp-text: #c8ffe4;
+    --cp-text-muted: #5a8f72;
+    --cp-text-dim: #3d6b55;
+
+    --cp-border: rgba(0, 255, 159, 0.18);
+    --cp-border-strong: rgba(0, 255, 159, 0.45);
+    --cp-glow-green: 0 0 16px rgba(0, 255, 159, 0.35);
+    --cp-glow-pink: 0 0 16px rgba(255, 42, 109, 0.35);
+    --cp-glow-cyan: 0 0 16px rgba(5, 217, 232, 0.35);
+}
+
+html[data-theme='cyber']::before {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.12) 0px,
+        rgba(0, 0, 0, 0.12) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    opacity: 0.35;
+}
+
+html[data-theme='cyber']::after {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 55%,
+        rgba(0, 0, 0, 0.55) 100%
+    );
+}
+
+html[data-theme='cyber'],
+html[data-theme='cyber'] body {
+    font-family: 'JetBrains Mono', 'Share Tech Mono', ui-monospace, monospace;
+    background-color: var(--cp-bg-deep) !important;
+    color: var(--cp-text) !important;
+}
+
+html[data-theme='cyber'] body {
+    background-image:
+        linear-gradient(rgba(0, 255, 159, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 159, 0.04) 1px, transparent 1px),
+        radial-gradient(ellipse at 20% 0%, rgba(189, 0, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(5, 217, 232, 0.06) 0%, transparent 50%);
+    background-size:
+        28px 28px,
+        28px 28px,
+        100% 100%,
+        100% 100%;
+    background-attachment: fixed;
+}
+
+/* ── Surfaces ── */
+
+html[data-theme='cyber'] .bg-white,
+html[data-theme='cyber'] .bg-slate-50,
+html[data-theme='cyber'] .bg-slate-50\/80,
+html[data-theme='cyber'] .bg-slate-100,
+html[data-theme='cyber'] .bg-slate-100\/80 {
+    background-color: var(--cp-bg-panel) !important;
+}
+
+html[data-theme='cyber'] .bg-slate-900,
+html[data-theme='cyber'] .bg-slate-950,
+html[data-theme='cyber'] .bg-slate-950\/70,
+html[data-theme='cyber'] .bg-slate-950\/60,
+html[data-theme='cyber'] .bg-slate-950\/50 {
+    background-color: var(--cp-bg-elevated) !important;
+}
+
+html[data-theme='cyber'] .bg-slate-800,
+html[data-theme='cyber'] .bg-slate-800\/60 {
+    background-color: var(--cp-bg-input) !important;
+}
+
+html[data-theme='cyber'] .bg-gradient-to-b {
+    background-image: linear-gradient(
+        to bottom,
+        var(--cp-bg-base),
+        var(--cp-bg-deep),
+        var(--cp-bg-deep)
+    ) !important;
+}
+
+html[data-theme='cyber'] .min-h-screen {
+    background-color: var(--cp-bg-deep) !important;
+}
+
+html[data-theme='cyber'] header.bg-white,
+html[data-theme='cyber'] nav.bg-white {
+    background-color: var(--cp-bg-panel) !important;
+    border-color: var(--cp-border) !important;
+    box-shadow: 0 1px 0 var(--cp-border), var(--cp-glow-green);
+}
+
+/* ── Borders ── */
+
+html[data-theme='cyber'] .border-slate-100,
+html[data-theme='cyber'] .border-slate-200,
+html[data-theme='cyber'] .border-slate-200\/80,
+html[data-theme='cyber'] .border-slate-300,
+html[data-theme='cyber'] .border-dashed {
+    border-color: var(--cp-border) !important;
+}
+
+html[data-theme='cyber'] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html[data-theme='cyber'] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--cp-border) !important;
+}
+
+html[data-theme='cyber'] .ring-slate-200,
+html[data-theme='cyber'] .ring-slate-200\/80,
+html[data-theme='cyber'] .ring-slate-700 {
+    --tw-ring-color: var(--cp-border) !important;
+}
+
+html[data-theme='cyber'] .rounded-xl,
+html[data-theme='cyber'] .rounded-2xl {
+    box-shadow:
+        inset 0 0 0 1px var(--cp-border),
+        0 0 20px rgba(0, 255, 159, 0.04);
+}
+
+/* ── Typography ── */
+
+html[data-theme='cyber'] .text-slate-900,
+html[data-theme='cyber'] .text-slate-800,
+html[data-theme='cyber'] .text-slate-700,
+html[data-theme='cyber'] .text-slate-600 {
+    color: var(--cp-text) !important;
+}
+
+html[data-theme='cyber'] .text-slate-500,
+html[data-theme='cyber'] .text-slate-400 {
+    color: var(--cp-text-muted) !important;
+}
+
+html[data-theme='cyber'] .text-slate-300 {
+    color: var(--cp-text-dim) !important;
+}
+
+html[data-theme='cyber'] .text-indigo-600,
+html[data-theme='cyber'] .text-indigo-700 {
+    color: var(--cp-neon-cyan) !important;
+    text-shadow: 0 0 8px rgba(5, 217, 232, 0.4);
+}
+
+html[data-theme='cyber'] .text-indigo-300,
+html[data-theme='cyber'] .text-indigo-200 {
+    color: var(--cp-neon-cyan) !important;
+}
+
+html[data-theme='cyber'] .text-emerald-600,
+html[data-theme='cyber'] .text-emerald-700,
+html[data-theme='cyber'] .text-emerald-300,
+html[data-theme='cyber'] .text-emerald-200 {
+    color: var(--cp-neon-green) !important;
+    text-shadow: 0 0 8px rgba(0, 255, 159, 0.35);
+}
+
+html[data-theme='cyber'] .text-rose-600,
+html[data-theme='cyber'] .text-rose-700,
+html[data-theme='cyber'] .text-rose-300,
+html[data-theme='cyber'] .text-rose-200,
+html[data-theme='cyber'] .text-rose-800 {
+    color: var(--cp-neon-pink) !important;
+    text-shadow: 0 0 8px rgba(255, 42, 109, 0.35);
+}
+
+html[data-theme='cyber'] .text-amber-700,
+html[data-theme='cyber'] .text-amber-200 {
+    color: var(--cp-neon-yellow) !important;
+}
+
+html[data-theme='cyber'] .line-through {
+    color: var(--cp-text-dim) !important;
+    text-shadow: none !important;
+}
+
+/* ── Accent backgrounds ── */
+
+html[data-theme='cyber'] .bg-indigo-50,
+html[data-theme='cyber'] .bg-indigo-950\/60 {
+    background-color: rgba(5, 217, 232, 0.1) !important;
+    color: var(--cp-neon-cyan) !important;
+}
+
+html[data-theme='cyber'] .bg-emerald-50,
+html[data-theme='cyber'] .bg-emerald-950\/60 {
+    background-color: rgba(0, 255, 159, 0.1) !important;
+    color: var(--cp-neon-green) !important;
+}
+
+html[data-theme='cyber'] .bg-rose-50,
+html[data-theme='cyber'] .bg-rose-950\/60 {
+    background-color: rgba(255, 42, 109, 0.1) !important;
+    color: var(--cp-neon-pink) !important;
+}
+
+html[data-theme='cyber'] .bg-amber-50,
+html[data-theme='cyber'] .bg-amber-950\/60 {
+    background-color: rgba(252, 238, 10, 0.08) !important;
+}
+
+html[data-theme='cyber'] .ring-indigo-200,
+html[data-theme='cyber'] .ring-indigo-800 {
+    --tw-ring-color: rgba(5, 217, 232, 0.35) !important;
+}
+
+html[data-theme='cyber'] .ring-emerald-200,
+html[data-theme='cyber'] .ring-emerald-800 {
+    --tw-ring-color: rgba(0, 255, 159, 0.35) !important;
+}
+
+html[data-theme='cyber'] .ring-rose-200,
+html[data-theme='cyber'] .ring-rose-800 {
+    --tw-ring-color: rgba(255, 42, 109, 0.35) !important;
+}
+
+html[data-theme='cyber'] .ring-slate-700 {
+    --tw-ring-color: var(--cp-border) !important;
+}
+
+/* ── Links & buttons ── */
+
+html[data-theme='cyber'] a:hover,
+html[data-theme='cyber'] .hover\:text-indigo-600:hover,
+html[data-theme='cyber'] .hover\:text-indigo-700:hover,
+html[data-theme='cyber'] .hover\:text-indigo-300:hover {
+    color: var(--cp-neon-green) !important;
+    text-shadow: var(--cp-glow-green);
+}
+
+html[data-theme='cyber'] .bg-emerald-600 {
+    background-color: rgba(0, 255, 159, 0.15) !important;
+    color: var(--cp-neon-green) !important;
+    border: 1px solid var(--cp-neon-green) !important;
+    box-shadow: var(--cp-glow-green);
+}
+
+html[data-theme='cyber'] .hover\:bg-emerald-700:hover {
+    background-color: rgba(0, 255, 159, 0.25) !important;
+    box-shadow: 0 0 24px rgba(0, 255, 159, 0.5);
+}
+
+html[data-theme='cyber'] .border-transparent.text-indigo-700,
+html[data-theme='cyber'] .border-indigo-400 {
+    border-color: var(--cp-neon-cyan) !important;
+    color: var(--cp-neon-cyan) !important;
+}
+
+html[data-theme='cyber'] .hover\:bg-indigo-50:hover,
+html[data-theme='cyber'] .hover\:bg-slate-50:hover,
+html[data-theme='cyber'] .hover\:bg-slate-100:hover,
+html[data-theme='cyber'] .hover\:bg-slate-800:hover {
+    background-color: rgba(0, 255, 159, 0.06) !important;
+}
+
+html[data-theme='cyber'] .hover\:border-indigo-200:hover,
+html[data-theme='cyber'] .hover\:border-slate-300:hover {
+    border-color: var(--cp-border-strong) !important;
+}
+
+html[data-theme='cyber'] .shadow-sm,
+html[data-theme='cyber'] .shadow-md,
+html[data-theme='cyber'] .shadow-2xl {
+    box-shadow:
+        inset 0 0 0 1px var(--cp-border),
+        0 0 24px rgba(0, 255, 159, 0.06) !important;
+}
+
+html[data-theme='cyber'] .shadow-slate-950\/40 {
+    box-shadow: 0 0 30px rgba(189, 0, 255, 0.08) !important;
+}
+
+/* ── Form inputs ── */
+
+html[data-theme='cyber'] input,
+html[data-theme='cyber'] select,
+html[data-theme='cyber'] textarea {
+    background-color: var(--cp-bg-input) !important;
+    border-color: var(--cp-border) !important;
+    color: var(--cp-text) !important;
+}
+
+html[data-theme='cyber'] input:focus,
+html[data-theme='cyber'] select:focus,
+html[data-theme='cyber'] textarea:focus {
+    border-color: var(--cp-neon-green) !important;
+    box-shadow: 0 0 0 2px rgba(0, 255, 159, 0.2), var(--cp-glow-green) !important;
+    outline: none;
+}
+
+html[data-theme='cyber'] .focus\:ring-indigo-500:focus {
+    --tw-ring-color: rgba(0, 255, 159, 0.4) !important;
+}
+
+/* ── Timeline cyber bars ── */
+
+html[data-theme='cyber'] .timeline-bar-track {
+    background-color: rgba(0, 255, 159, 0.04) !important;
+    ring-color: var(--cp-border) !important;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme='cyber'] .timeline-bar-fill {
+    background: linear-gradient(
+        90deg,
+        var(--cp-neon-pink),
+        var(--cp-neon-cyan),
+        var(--cp-neon-green)
+    ) !important;
+    box-shadow: var(--cp-glow-cyan);
+    opacity: 1 !important;
+}
+
+html[data-theme='cyber'] .timeline-bar-fill.timeline-bar-completed {
+    opacity: 0.25 !important;
+    filter: grayscale(0.6);
+}
+
+html[data-theme='cyber'] .timeline-today-marker {
+    background-color: var(--cp-neon-pink) !important;
+    box-shadow: var(--cp-glow-pink);
+}
+
+html[data-theme='cyber'] .timeline-today-label {
+    background-color: var(--cp-neon-pink) !important;
+    color: #000 !important;
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: var(--cp-glow-pink);
+}
+
+/* ── Category dots ── */
+
+html[data-theme='cyber'] .bg-indigo-500 {
+    background-color: var(--cp-neon-cyan) !important;
+    box-shadow: var(--cp-glow-cyan);
+}
+
+html[data-theme='cyber'] .bg-emerald-500 {
+    background-color: var(--cp-neon-green) !important;
+    box-shadow: var(--cp-glow-green);
+}
+
+html[data-theme='cyber'] .bg-slate-500 {
+    background-color: var(--cp-neon-purple) !important;
+    box-shadow: 0 0 10px rgba(189, 0, 255, 0.4);
+}
+
+html[data-theme='cyber'] .bg-rose-500 {
+    background-color: var(--cp-neon-pink) !important;
+    box-shadow: var(--cp-glow-pink);
+}
+
+/* ── Logo ── */
+
+html[data-theme='cyber'] .fill-current.text-slate-800,
+html[data-theme='cyber'] svg.fill-current {
+    fill: var(--cp-neon-green) !important;
+    filter: drop-shadow(0 0 6px rgba(0, 255, 159, 0.5));
+}
+
+/* ── Dropdown ── */
+
+html[data-theme='cyber'] .origin-top-right.rounded-md.bg-white {
+    background-color: var(--cp-bg-elevated) !important;
+    border: 1px solid var(--cp-border-strong) !important;
+    box-shadow: var(--cp-glow-green) !important;
+}
+
+/* ── Scrollbars ── */
+
+html[data-theme='cyber'] ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+html[data-theme='cyber'] ::-webkit-scrollbar-track {
+    background: var(--cp-bg-deep);
+}
+
+html[data-theme='cyber'] ::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 159, 0.25);
+    border-radius: 3px;
+}
+
+html[data-theme='cyber'] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 159, 0.45);
+}
+
+/* ── Theme toggle in cyber mode ── */
+
+html[data-theme='cyber'] [aria-label='テーマ切り替え'] {
+    background-color: var(--cp-bg-panel) !important;
+    border-color: var(--cp-border-strong) !important;
+    box-shadow: var(--cp-glow-green);
+}
+
+html[data-theme='cyber'] [aria-label='テーマ切り替え'] button[aria-pressed='true'] {
+    background-color: rgba(0, 255, 159, 0.12) !important;
+    color: var(--cp-neon-green) !important;
+    box-shadow: var(--cp-glow-green);
+}
+
+html[data-theme='cyber'] [aria-label='テーマ切り替え'] button[aria-pressed='false'] {
+    color: var(--cp-text-muted) !important;
+}
+
+html[data-theme='cyber'] [aria-label='テーマ切り替え'] button[aria-pressed='false']:hover {
+    color: var(--cp-neon-cyan) !important;
+}

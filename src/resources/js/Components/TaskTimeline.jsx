@@ -174,7 +174,7 @@ export default function TaskTimeline({ tasks }) {
                                     className="pointer-events-none absolute top-1 z-20 -translate-x-1/2"
                                     style={{ left: `${todayOffset}%` }}
                                 >
-                                    <span className="rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-semibold text-white">
+                                    <span className="timeline-today-label rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-semibold text-white">
                                         今日
                                     </span>
                                 </div>
@@ -225,7 +225,7 @@ export default function TaskTimeline({ tasks }) {
                             {showTodayMarker && (
                                 <div className="pointer-events-none absolute inset-y-0 left-3 right-3 z-10">
                                     <div
-                                        className="absolute top-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-rose-500"
+                                        className="timeline-today-marker absolute top-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-rose-500"
                                         style={{ left: `${todayOffset}%` }}
                                     />
                                 </div>
@@ -244,9 +244,9 @@ export default function TaskTimeline({ tasks }) {
                                         className="flex items-center border-b border-slate-100 px-3 last:border-b-0 dark:border-slate-800"
                                         style={{ height: ROW_HEIGHT }}
                                     >
-                                        <div className="relative h-5 w-full rounded bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
+                                        <div className="timeline-bar-track relative h-5 w-full rounded bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
                                             <div
-                                                className={`absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r ${colors.bar} ${isCompleted ? 'opacity-35' : 'opacity-95'}`}
+                                                className={`timeline-bar-fill absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r ${colors.bar} ${isCompleted ? 'timeline-bar-completed opacity-35' : 'opacity-95'}`}
                                                 style={{
                                                     left: `${task.offsetPercent}%`,
                                                     width: `${task.widthPercent}%`,

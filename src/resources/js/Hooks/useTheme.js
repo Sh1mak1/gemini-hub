@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+export const THEMES = ['light', 'dark', 'cyber'];
+
 const STORAGE_KEY = 'theme';
 const THEME_CHANGE_EVENT = 'themechange';
 
@@ -11,9 +13,7 @@ function getStoredTheme() {
     try {
         const storedTheme = window.localStorage.getItem(STORAGE_KEY);
 
-        return storedTheme === 'dark' || storedTheme === 'light'
-            ? storedTheme
-            : null;
+        return THEMES.includes(storedTheme) ? storedTheme : null;
     } catch {
         return null;
     }
@@ -22,6 +22,12 @@ function getStoredTheme() {
 function getInitialTheme() {
     if (typeof document === 'undefined') {
         return 'light';
+    }
+
+    const dataTheme = document.documentElement.getAttribute('data-theme');
+
+    if (THEMES.includes(dataTheme)) {
+        return dataTheme;
     }
 
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -33,11 +39,14 @@ function getSystemTheme() {
         : 'light';
 }
 
-function applyTheme(theme) {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+export function applyTheme(theme) {
+    const root = document.documentElement;
+
+    root.setAttribute('data-theme', theme);
+    root.classList.toggle('dark', theme === 'dark');
 }
 
-export default function useDarkMode() {
+export default function useTheme() {
     const [theme, setTheme] = useState(getInitialTheme);
 
     useEffect(() => {
@@ -80,21 +89,26 @@ export default function useDarkMode() {
         };
     }, []);
 
+    const setThemeWithSync = (nextTheme) => {
+        setTheme(nextTheme);
+        window.dispatchEvent(
+            new CustomEvent(THEME_CHANGE_EVENT, {
+                detail: { theme: nextTheme },
+            }),
+        );
+    };
+
+    const cycleTheme = () => {
+        const index = THEMES.indexOf(theme);
+        const nextTheme = THEMES[(index + 1) % THEMES.length];
+        setThemeWithSync(nextTheme);
+    };
+
     return {
-        isDark: theme === 'dark',
         theme,
-        toggleTheme: () => {
-            setTheme((currentTheme) => {
-                const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-                window.dispatchEvent(
-                    new CustomEvent(THEME_CHANGE_EVENT, {
-                        detail: { theme: nextTheme },
-                    }),
-                );
-
-                return nextTheme;
-            });
-        },
+        isDark: theme === 'dark',
+        isCyber: theme === 'cyber',
+        setTheme: setThemeWithSync,
+        cycleTheme,
     };
 }
