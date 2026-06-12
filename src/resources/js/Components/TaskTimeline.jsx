@@ -171,10 +171,10 @@ export default function TaskTimeline({ tasks }) {
                             </div>
                             {showTodayMarker && (
                                 <div
-                                    className="pointer-events-none absolute top-1 z-20 -translate-x-1/2"
+                                    className="pointer-events-none absolute top-1 z-20 flex w-10 -translate-x-1/2 justify-center"
                                     style={{ left: `${todayOffset}%` }}
                                 >
-                                    <span className="timeline-today-label rounded-full bg-rose-500 px-1.5 py-px text-[9px] font-semibold text-white">
+                                    <span className="timeline-today-label rounded-full bg-rose-500 px-2 py-0.5 text-center text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white/80 dark:ring-slate-950/80">
                                         今日
                                     </span>
                                 </div>
