@@ -81,15 +81,22 @@ html[data-theme='cyber'] body {
 /* ── Surfaces ── */
 
 html[data-theme='cyber'] .bg-white,
+html[data-theme='cyber'] .bg-white\/80,
+html[data-theme='cyber'] .bg-white\/10,
 html[data-theme='cyber'] .bg-slate-50,
+html[data-theme='cyber'] .bg-slate-50\/95,
 html[data-theme='cyber'] .bg-slate-50\/80,
+html[data-theme='cyber'] .bg-slate-50\/60,
 html[data-theme='cyber'] .bg-slate-100,
 html[data-theme='cyber'] .bg-slate-100\/80 {
     background-color: var(--cp-bg-panel) !important;
 }
 
 html[data-theme='cyber'] .bg-slate-900,
+html[data-theme='cyber'] .bg-slate-900\/80,
+html[data-theme='cyber'] .bg-slate-900\/70,
 html[data-theme='cyber'] .bg-slate-950,
+html[data-theme='cyber'] .bg-slate-950\/95,
 html[data-theme='cyber'] .bg-slate-950\/70,
 html[data-theme='cyber'] .bg-slate-950\/60,
 html[data-theme='cyber'] .bg-slate-950\/50 {
@@ -327,7 +334,7 @@ html[data-theme='cyber'] .focus\:ring-indigo-500:focus {
 
 html[data-theme='cyber'] .timeline-bar-track {
     background-color: rgba(0, 255, 159, 0.04) !important;
-    ring-color: var(--cp-border) !important;
+    --tw-ring-color: var(--cp-border) !important;
     box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
 }
 
