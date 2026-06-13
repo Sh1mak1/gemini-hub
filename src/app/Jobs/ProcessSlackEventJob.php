@@ -6,6 +6,7 @@ use App\Data\SlackIncomingEvent;
 use App\Services\Gemini\TaskExtractionService;
 use App\Services\Slack\SlackApiClient;
 use App\Services\Slack\SlackEventExtractor;
+use App\Services\Pushover\PushoverNotificationService;
 use App\Services\Slack\SlackNotificationService;
 use App\Services\Tasks\TaskPersistenceService;
 use App\Support\OperationLogger;
@@ -33,6 +34,7 @@ class ProcessSlackEventJob implements ShouldQueue
         TaskExtractionService $taskExtraction,
         TaskPersistenceService $taskPersistence,
         SlackNotificationService $notification,
+        PushoverNotificationService $pushover,
         TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ): void {
         $event = $extractor->extract($this->payload);
@@ -74,6 +76,12 @@ class ProcessSlackEventJob implements ShouldQueue
         $notification->notifyTaskCreated(
             $persisted->model,
             sourceChannelId: $event->channelId,
+            geminiFailure: $outcome->geminiFailure,
+        );
+
+        $pushover->notifyTaskCreated(
+            $persisted->model,
+            'Slack',
             geminiFailure: $outcome->geminiFailure,
         );
 

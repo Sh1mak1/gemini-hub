@@ -5,6 +5,7 @@ namespace App\Services\Drafts;
 use App\Data\GeminiExtractionFailure;
 use App\Models\DraftsTaskQueue;
 use App\Services\Gemini\TaskExtractionService;
+use App\Services\Pushover\PushoverNotificationService;
 use App\Services\Slack\SlackNotificationService;
 use App\Services\Tasks\TaskPersistenceService;
 use App\Support\OperationLogger;
@@ -16,6 +17,7 @@ class DraftsTaskQueueService
         private TaskExtractionService $taskExtraction,
         private TaskPersistenceService $taskPersistence,
         private SlackNotificationService $slackNotification,
+        private PushoverNotificationService $pushover,
         private TodayDueTasksSlackDispatcher $todayDueTasksSlack,
     ) {}
 
@@ -93,6 +95,12 @@ class DraftsTaskQueueService
                 geminiFailure: $outcome->geminiFailure,
             );
 
+            $this->pushover->notifyTaskCreated(
+                $persisted->model,
+                'Drafts',
+                geminiFailure: $outcome->geminiFailure,
+            );
+
             OperationLogger::info('drafts.queue', 'task_created', [
                 'queue_id' => $item->id,
                 'task_id' => $persisted->id,
@@ -103,7 +111,7 @@ class DraftsTaskQueueService
         }
 
         if ($hadGeminiApiError) {
-            $this->recordFailedAttempt($item, $lastFailure);
+            $this->recordFailedAttempt($item, $lastFailure, $item->input_text);
 
             return false;
         }
@@ -136,11 +144,22 @@ class DraftsTaskQueueService
     private function recordFailedAttempt(
         DraftsTaskQueue $item,
         ?GeminiExtractionFailure $failure,
+        string $inputText,
     ): void {
+        $isFirstFailure = ($item->attempts ?? 0) === 0;
+
         $item->update([
             'attempts' => $item->attempts + 1,
             'last_error' => $failure?->message,
         ]);
+
+        if ($isFirstFailure && $failure !== null) {
+            $this->pushover->notifyRegistrationFailed(
+                'Drafts',
+                mb_substr($inputText, 0, 100),
+                $failure,
+            );
+        }
 
         OperationLogger::warning('drafts.queue', 'gemini_failed', [
             'queue_id' => $item->id,

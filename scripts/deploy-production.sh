@@ -99,4 +99,12 @@ run docker compose ps
 run systemctl is-active laravel-queue
 run curl -fsS "$APP_URL/up" >/dev/null
 
+if [[ -x "$APP_DIR/scripts/pushover-notify.sh" ]]; then
+  "$APP_DIR/scripts/pushover-notify.sh" \
+    "gemini-hub デプロイ完了" \
+    "Commit: ${NEW:0:7}
+URL: $APP_URL" \
+    || echo "==> Pushover notification skipped or failed"
+fi
+
 echo "==> Deploy OK ($NEW)"

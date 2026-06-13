@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": ".cursor/hooks/pushover-agent-stop.sh"
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/pushover-agent-stop.sh"
+      }
+    ]
+  }
+}

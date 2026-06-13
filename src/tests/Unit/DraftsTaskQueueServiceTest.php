@@ -8,6 +8,7 @@ use App\Enums\TaskCategory;
 use App\Models\DraftsTaskQueue;
 use App\Services\Drafts\DraftsTaskQueueService;
 use App\Services\Gemini\TaskExtractionService;
+use App\Services\Pushover\PushoverNotificationService;
 use App\Services\Slack\SlackNotificationService;
 use App\Services\Tasks\TaskPersistenceService;
 use App\Support\TodayDueTasksSlackDispatcher;
@@ -35,6 +36,9 @@ class DraftsTaskQueueServiceTest extends TestCase
         $slack = Mockery::mock(SlackNotificationService::class);
         $slack->shouldReceive('notifyTaskCreated')->once();
 
+        $pushover = Mockery::mock(PushoverNotificationService::class);
+        $pushover->shouldReceive('notifyTaskCreated')->once();
+
         $today = Mockery::mock(TodayDueTasksSlackDispatcher::class);
         $today->shouldReceive('dispatchNow')->once();
 
@@ -42,6 +46,7 @@ class DraftsTaskQueueServiceTest extends TestCase
             $extraction,
             new TaskPersistenceService,
             $slack,
+            $pushover,
             $today,
         );
 
@@ -71,6 +76,10 @@ class DraftsTaskQueueServiceTest extends TestCase
         $slack = Mockery::mock(SlackNotificationService::class);
         $slack->shouldNotReceive('notifyTaskCreated');
 
+        $pushover = Mockery::mock(PushoverNotificationService::class);
+        $pushover->shouldReceive('notifyRegistrationFailed')->once();
+        $pushover->shouldNotReceive('notifyTaskCreated');
+
         $today = Mockery::mock(TodayDueTasksSlackDispatcher::class);
         $today->shouldNotReceive('dispatchNow');
 
@@ -78,6 +87,7 @@ class DraftsTaskQueueServiceTest extends TestCase
             $extraction,
             new TaskPersistenceService,
             $slack,
+            $pushover,
             $today,
         );
 
@@ -97,6 +107,7 @@ class DraftsTaskQueueServiceTest extends TestCase
             Mockery::mock(TaskExtractionService::class),
             new TaskPersistenceService,
             Mockery::mock(SlackNotificationService::class),
+            Mockery::mock(PushoverNotificationService::class),
             Mockery::mock(TodayDueTasksSlackDispatcher::class),
         );
 
