@@ -36,4 +36,27 @@ class NominatimGeocodingServiceTest extends TestCase
 
         $this->assertNull($point);
     }
+
+    public function test_geocode_near_picks_result_closest_to_expected_distance(): void
+    {
+        Http::fake([
+            'nominatim.openstreetmap.org/search*' => Http::response([
+                [
+                    'lat' => '35.0000000',
+                    'lon' => '140.0000000',
+                ],
+                [
+                    'lat' => '35.7147650',
+                    'lon' => '139.7966550',
+                ],
+            ]),
+        ]);
+
+        $center = new \App\Services\TourismTest\GeocodedPoint(35.681236, 139.767125);
+        $point = app(NominatimGeocodingService::class)->geocodeNear('浅草寺', $center, 5.0);
+
+        $this->assertNotNull($point);
+        $this->assertSame(35.714765, $point->latitude);
+        $this->assertSame(139.796655, $point->longitude);
+    }
 }

@@ -12,6 +12,10 @@ const PIN_RADIUS = 15;
 const CENTER_RADIUS = 17;
 const GAP = 20;
 const BOUNDS_PADDING = 12;
+const FOOTER_SAFE_HEIGHT = 84;
+
+const MAP_CONTAINER_CLASS =
+    'relative mx-auto h-[100vh] w-[80vw] max-w-full overflow-hidden rounded-3xl border border-[#e2d4bc] shadow-[0_18px_40px_-28px_rgba(62,44,28,0.45)]';
 
 const ANGLE_DELTAS = [0, 0.55, -0.55, 1.1, -1.1, 1.65, -1.65, 2.2, -2.2];
 const PLACEMENT_DISTANCES = [96, 112, 128, 144, 168];
@@ -113,8 +117,21 @@ function rectWithinBounds(rect, width, height, padding = BOUNDS_PADDING) {
         rect.left >= padding
         && rect.top >= padding
         && rect.right <= width - padding
-        && rect.bottom <= height - padding
+        && rect.bottom <= height - padding - FOOTER_SAFE_HEIGHT
     );
+}
+
+function clampCardPosition(left, top, mapSize) {
+    return {
+        left: Math.min(
+            Math.max(left, BOUNDS_PADDING),
+            mapSize.x - CARD_WIDTH - BOUNDS_PADDING,
+        ),
+        top: Math.min(
+            Math.max(top, BOUNDS_PADDING),
+            mapSize.y - CARD_HEIGHT - BOUNDS_PADDING - FOOTER_SAFE_HEIGHT,
+        ),
+    };
 }
 
 function closestPointOnRect(px, py, rect) {
@@ -153,45 +170,82 @@ function connectorPoints(pinX, pinY, rect) {
 
 function placeCard(pinX, pinY, centerX, centerY, placedRects, mapSize) {
     const baseAngle = Math.atan2(pinY - centerY, pinX - centerX);
+    const candidateAngles = [];
 
     for (const distance of PLACEMENT_DISTANCES) {
         for (const delta of ANGLE_DELTAS) {
-            const angle = baseAngle + delta;
-            const cardCenterX = pinX + Math.cos(angle) * distance;
-            const cardCenterY = pinY + Math.sin(angle) * distance;
-            const left = cardCenterX - CARD_WIDTH / 2;
-            const top = cardCenterY - CARD_HEIGHT / 2;
-            const rect = makeRect(left, top, CARD_WIDTH, CARD_HEIGHT);
-
-            const overlaps = placedRects.some((placed) => rectsOverlap(rect, placed))
-                || rectOverlapsCircle(rect, pinX, pinY, PIN_RADIUS)
-                || rectOverlapsCircle(rect, centerX, centerY, CENTER_RADIUS)
-                || !rectWithinBounds(rect, mapSize.x, mapSize.y);
-
-            if (!overlaps) {
-                return {
-                    left,
-                    top,
-                    rect,
-                    ...connectorPoints(pinX, pinY, rect),
-                };
-            }
+            candidateAngles.push({ angle: baseAngle + delta, distance });
         }
     }
 
-    const fallbackLeft = Math.min(
-        Math.max(pinX + PIN_RADIUS + GAP, BOUNDS_PADDING),
-        mapSize.x - CARD_WIDTH - BOUNDS_PADDING,
+    const inwardBase = baseAngle + Math.PI;
+    for (const distance of PLACEMENT_DISTANCES) {
+        for (const delta of [0, 0.45, -0.45, 0.9, -0.9]) {
+            candidateAngles.push({
+                angle: inwardBase + delta,
+                distance: distance * 0.9,
+            });
+        }
+    }
+
+    let bestPartial = null;
+
+    for (const { angle, distance } of candidateAngles) {
+        const cardCenterX = pinX + Math.cos(angle) * distance;
+        const cardCenterY = pinY + Math.sin(angle) * distance;
+        const clamped = clampCardPosition(
+            cardCenterX - CARD_WIDTH / 2,
+            cardCenterY - CARD_HEIGHT / 2,
+            mapSize,
+        );
+        const rect = makeRect(clamped.left, clamped.top, CARD_WIDTH, CARD_HEIGHT);
+
+        if (!rectWithinBounds(rect, mapSize.x, mapSize.y)) {
+            continue;
+        }
+
+        const overlapsPin = rectOverlapsCircle(rect, pinX, pinY, PIN_RADIUS);
+        const overlapsCenter = rectOverlapsCircle(rect, centerX, centerY, CENTER_RADIUS);
+        const overlapCount = placedRects.filter((placed) => rectsOverlap(rect, placed)).length
+            + (overlapsPin ? 1 : 0)
+            + (overlapsCenter ? 1 : 0);
+
+        if (overlapCount === 0) {
+            return {
+                left: clamped.left,
+                top: clamped.top,
+                rect,
+                ...connectorPoints(pinX, pinY, rect),
+            };
+        }
+
+        if (bestPartial === null || overlapCount < bestPartial.overlapCount) {
+            bestPartial = {
+                left: clamped.left,
+                top: clamped.top,
+                rect,
+                overlapCount,
+                ...connectorPoints(pinX, pinY, rect),
+            };
+        }
+    }
+
+    if (bestPartial !== null) {
+        const { overlapCount: _overlapCount, ...placement } = bestPartial;
+
+        return placement;
+    }
+
+    const fallback = clampCardPosition(
+        pinX + PIN_RADIUS + GAP,
+        pinY - CARD_HEIGHT - PIN_RADIUS - GAP,
+        mapSize,
     );
-    const fallbackTop = Math.min(
-        Math.max(pinY - CARD_HEIGHT - PIN_RADIUS - GAP, BOUNDS_PADDING),
-        mapSize.y - CARD_HEIGHT - BOUNDS_PADDING,
-    );
-    const rect = makeRect(fallbackLeft, fallbackTop, CARD_WIDTH, CARD_HEIGHT);
+    const rect = makeRect(fallback.left, fallback.top, CARD_WIDTH, CARD_HEIGHT);
 
     return {
-        left: fallbackLeft,
-        top: fallbackTop,
+        left: fallback.left,
+        top: fallback.top,
         rect,
         ...connectorPoints(pinX, pinY, rect),
     };
@@ -213,7 +267,8 @@ function FitMapBounds({ center, mappableSpots }) {
             map.setView(latLngs[0], 14, { animate: false });
         } else {
             map.fitBounds(L.latLngBounds(latLngs), {
-                padding: [120, 120],
+                paddingTopLeft: [120, 120],
+                paddingBottomRight: [120, 120 + FOOTER_SAFE_HEIGHT],
                 maxZoom: 15,
                 animate: false,
             });
@@ -283,13 +338,19 @@ function MapSpotOverlay({
         const timer = window.setTimeout(() => {
             map.invalidateSize();
             updateLayout();
-        }, 200);
+        }, 400);
+
+        const raf = window.requestAnimationFrame(() => {
+            map.invalidateSize();
+            updateLayout();
+        });
 
         return () => {
             map.off('moveend', handleMapChange);
             map.off('zoomend', handleMapChange);
             map.off('resize', handleMapChange);
             window.clearTimeout(timer);
+            window.cancelAnimationFrame(raf);
         };
     }, [map, updateLayout]);
 
@@ -348,7 +409,7 @@ export default function TourismMapView({
 
     if (!hasCoordinates(center?.latitude, center?.longitude)) {
         return (
-            <div className="mx-auto flex h-[100vh] w-[100vh] max-w-full items-center justify-center rounded-3xl border border-dashed border-[#d9cdb8] bg-[#fffdf8]/70 text-sm text-[#8b7355]">
+            <div className={`mx-auto flex items-center justify-center rounded-3xl border border-dashed border-[#d9cdb8] bg-[#fffdf8]/70 text-sm text-[#8b7355] ${MAP_CONTAINER_CLASS}`}>
                 地図を表示する座標がありません
             </div>
         );
@@ -363,7 +424,7 @@ export default function TourismMapView({
         expandedSpotIndex === null ? null : spots[expandedSpotIndex] ?? null;
 
     return (
-        <div className="relative mx-auto h-[100vh] w-[100vh] max-w-full overflow-hidden rounded-3xl border border-[#e2d4bc] shadow-[0_18px_40px_-28px_rgba(62,44,28,0.45)]">
+        <div className={MAP_CONTAINER_CLASS}>
             <MapContainer
                 center={mapCenter}
                 zoom={13}

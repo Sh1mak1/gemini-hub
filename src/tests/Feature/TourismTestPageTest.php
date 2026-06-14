@@ -90,15 +90,15 @@ class TourismTestPageTest extends TestCase
             ->andReturn(new GeocodedPoint(36.578, 136.648));
         $geocoding->shouldReceive('geocodeNear')
             ->once()
-            ->with('兼六園, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->with('兼六園', Mockery::type(GeocodedPoint::class), 2.1)
             ->andReturn(new GeocodedPoint(36.562, 136.662));
         $geocoding->shouldReceive('geocodeNear')
             ->once()
-            ->with('金沢21世紀美術館, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->with('金沢21世紀美術館', Mockery::type(GeocodedPoint::class), 2.5)
             ->andReturn(new GeocodedPoint(36.560, 136.658));
         $geocoding->shouldReceive('geocodeNear')
             ->once()
-            ->with('東茶屋街, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->with('東茶屋街', Mockery::type(GeocodedPoint::class), 3.0)
             ->andReturn(new GeocodedPoint(36.571, 136.671));
 
         $this->app->instance(NominatimGeocodingService::class, $geocoding);

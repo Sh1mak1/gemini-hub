@@ -164,8 +164,9 @@ class TourismSpotSearchService
     {
         return array_map(function (TourismSpotData $spot) use ($locationName, $center): TourismSpotData {
             $coordinates = $this->geocoding->geocodeNear(
-                "{$spot->name}, {$locationName}",
+                $spot->name,
                 $center,
+                $spot->distanceKm,
             );
 
             return new TourismSpotData(
