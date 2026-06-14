@@ -147,12 +147,28 @@ git commit → git push origin main → GitHub Actions → scripts/deploy-produc
 
 ---
 
-## Cursor Cloud 向け補足
+## Cursor Cloud specific instructions
 
-Cloud Agent 環境では Docker Compose で開発・テストする。Secrets（`GEMINI_API_KEY` 等）は Cursor Dashboard の Secrets タブまたは Cloud 環境設定が必要な場合がある。
+Cloud Agent は `.cursor/environment.json` で Docker Compose 環境を起動する。`install` 完了後に次で動作確認すること。
 
-環境変数の一覧は `src/.env.example` を参照。値そのものはリポジトリに含めない。
+```bash
+# サービス起動（install で up 済みのことが多い）
+docker compose ps
+
+# テスト（必須・完了条件）
+docker compose exec app php artisan test
+
+# フロント変更時
+docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
+```
+
+- `composer` / `artisan` / `npm` は **Docker 内のみ**（`src/` がマウント先）
+- Secrets は Cursor Dashboard に登録済み。`src/.env` を手動コミットしない
+- Gemini / Slack の実 API テストは不要なら Unit テストのみでよい
+- デプロイは `main` push → GitHub Actions（手動 SSH 不要）
+
+環境定義: `.cursor/environment.json`, `.cursor/Dockerfile`, `.cursor/scripts/cloud-env-install.sh`
 
 ---
 
-*最終更新: 2026-06-08*
+*最終更新: 2026-06-13*
