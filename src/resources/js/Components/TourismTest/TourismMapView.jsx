@@ -6,8 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import TourismSpotExpandedOverlay from '@/Components/TourismTest/TourismSpotExpandedOverlay';
 import TourismSpotMiniCard from '@/Components/TourismTest/TourismSpotMiniCard';
 
-const FIXED_ZOOM = 13;
-
 const MINI_CARD_OFFSETS = [
     { x: 18, y: -150 },
     { x: -170, y: -60 },
@@ -66,22 +64,41 @@ function createSpotMarkerIcon(index) {
     });
 }
 
-function FixedMapView({ center }) {
+function lockMapInteractions(map) {
+    map.dragging.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+    map.scrollWheelZoom.disable();
+    map.boxZoom.disable();
+    map.keyboard.disable();
+
+    if (map.zoomControl) {
+        map.removeControl(map.zoomControl);
+    }
+}
+
+function FitMapBounds({ center, mappableSpots }) {
     const map = useMap();
 
     useEffect(() => {
         map.invalidateSize();
-        map.setView(center, FIXED_ZOOM, { animate: false });
-        map.dragging.disable();
-        map.touchZoom.disable();
-        map.doubleClickZoom.disable();
-        map.scrollWheelZoom.disable();
-        map.boxZoom.disable();
-        map.keyboard.disable();
-        if (map.zoomControl) {
-            map.removeControl(map.zoomControl);
+        lockMapInteractions(map);
+
+        const latLngs = [
+            [center.latitude, center.longitude],
+            ...mappableSpots.map((spot) => [spot.latitude, spot.longitude]),
+        ];
+
+        if (latLngs.length === 1) {
+            map.setView(latLngs[0], 14, { animate: false });
+        } else {
+            map.fitBounds(L.latLngBounds(latLngs), {
+                padding: [120, 120],
+                maxZoom: 15,
+                animate: false,
+            });
         }
-    }, [map, center]);
+    }, [map, center, mappableSpots]);
 
     return null;
 }
@@ -115,16 +132,20 @@ function MapSpotMiniCards({
     useEffect(() => {
         updateLayout();
 
-        const handleResize = () => updateLayout();
-        map.on('resize', handleResize);
+        const handleMapChange = () => updateLayout();
+        map.on('moveend', handleMapChange);
+        map.on('zoomend', handleMapChange);
+        map.on('resize', handleMapChange);
 
         const timer = window.setTimeout(() => {
             map.invalidateSize();
             updateLayout();
-        }, 120);
+        }, 200);
 
         return () => {
-            map.off('resize', handleResize);
+            map.off('moveend', handleMapChange);
+            map.off('zoomend', handleMapChange);
+            map.off('resize', handleMapChange);
             window.clearTimeout(timer);
         };
     }, [map, updateLayout]);
@@ -181,7 +202,7 @@ export default function TourismMapView({
         <div className="relative mx-auto h-[100vh] w-[100vh] max-w-full overflow-hidden rounded-3xl border border-[#e2d4bc] shadow-[0_18px_40px_-28px_rgba(62,44,28,0.45)]">
             <MapContainer
                 center={mapCenter}
-                zoom={FIXED_ZOOM}
+                zoom={13}
                 scrollWheelZoom={false}
                 dragging={false}
                 touchZoom={false}
@@ -195,7 +216,7 @@ export default function TourismMapView({
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <FixedMapView center={mapCenter} />
+                <FitMapBounds center={center} mappableSpots={mappableSpots} />
                 {mappableSpots.map((spot) => (
                     <Polyline
                         key={`line-${spot.name}`}

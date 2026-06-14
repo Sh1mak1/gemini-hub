@@ -24,7 +24,7 @@ class TourismTestPageTest extends TestCase
     public function test_guest_cannot_view_tourism_test_page(): void
     {
         $this->get(route('debug.tourism'))->assertRedirect(route('login'));
-        $this->post(route('debug.tourism.search'), [
+        $this->postJson(route('debug.tourism.search'), [
             'location_name' => '金沢駅',
         ])->assertRedirect(route('login'));
     }
@@ -44,7 +44,7 @@ class TourismTestPageTest extends TestCase
             );
     }
 
-    public function test_search_persists_spots_and_returns_results(): void
+    public function test_search_persists_spots_and_returns_json_results(): void
     {
         $user = User::factory()->create();
 
@@ -104,21 +104,17 @@ class TourismTestPageTest extends TestCase
         $this->app->instance(NominatimGeocodingService::class, $geocoding);
 
         $this->actingAs($user)
-            ->post(route('debug.tourism.search'), [
+            ->postJson(route('debug.tourism.search'), [
                 'location_name' => '金沢駅',
             ])
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Debug/Tourism')
-                ->where('latestResult.location_name', '金沢駅')
-                ->where('latestResult.latitude', 36.578)
-                ->where('latestResult.longitude', 136.648)
-                ->where('latestResult.status', 'completed')
-                ->has('latestResult.spots', 3)
-                ->where('latestResult.spots.0.name', '兼六園')
-                ->where('latestResult.spots.0.latitude', 36.562)
-                ->has('recentSearches', 1)
-            );
+            ->assertJsonPath('latestResult.location_name', '金沢駅')
+            ->assertJsonPath('latestResult.latitude', 36.578)
+            ->assertJsonPath('latestResult.longitude', 136.648)
+            ->assertJsonPath('latestResult.status', 'completed')
+            ->assertJsonPath('latestResult.spots.0.name', '兼六園')
+            ->assertJsonPath('latestResult.spots.0.latitude', 36.562)
+            ->assertJsonCount(1, 'recentSearches');
 
         $this->assertDatabaseHas('tourism_test_searches', [
             'location_name' => '金沢駅',
@@ -135,9 +131,9 @@ class TourismTestPageTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->post(route('debug.tourism.search'), [
+            ->postJson(route('debug.tourism.search'), [
                 'location_name' => '',
             ])
-            ->assertSessionHasErrors('location_name');
+            ->assertInvalid(['location_name']);
     }
 }

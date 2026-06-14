@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TourismTestSearch;
 use App\Services\TourismTest\TourismSpotSearchService;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +21,7 @@ class TourismTestController extends Controller
         ]);
     }
 
-    public function search(Request $request, TourismSpotSearchService $service): Response|RedirectResponse
+    public function search(Request $request, TourismSpotSearchService $service): JsonResponse
     {
         $validated = $request->validate([
             'location_name' => ['required', 'string', 'min:1', 'max:100'],
@@ -30,15 +30,15 @@ class TourismTestController extends Controller
         try {
             $result = $service->search($validated['location_name']);
 
-            return Inertia::render('Debug/Tourism', [
-                'recentSearches' => $this->formatRecentSearches(),
+            return response()->json([
                 'latestResult' => $this->formatSearch($result['search']),
+                'recentSearches' => $this->formatRecentSearches(),
                 'error' => null,
             ]);
         } catch (Throwable $exception) {
-            return Inertia::render('Debug/Tourism', [
-                'recentSearches' => $this->formatRecentSearches(),
+            return response()->json([
                 'latestResult' => null,
+                'recentSearches' => $this->formatRecentSearches(),
                 'error' => $exception->getMessage(),
             ]);
         }

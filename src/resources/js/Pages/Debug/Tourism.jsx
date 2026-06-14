@@ -2,8 +2,8 @@ import AppSectionTabs from '@/Components/AppSectionTabs';
 import TourismGuideHero from '@/Components/TourismTest/TourismGuideHero';
 import TourismMap from '@/Components/TourismTest/TourismMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm } from '@inertiajs/react';
-import { useEffect, useRef } from 'react';
+import { Head } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
 function SearchHistoryItem({ search }) {
     const spotNames = search.spots.map((spot) => spot.name).join(' / ');
@@ -33,18 +33,67 @@ function SearchHistoryItem({ search }) {
     );
 }
 
-export default function Tourism({ recentSearches, latestResult, error }) {
+function csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+}
+
+export default function Tourism({
+    recentSearches: initialRecentSearches,
+    latestResult: initialLatestResult,
+    error: initialError,
+}) {
     const mapSectionRef = useRef(null);
     const lastScrolledSearchId = useRef(null);
-    const form = useForm({
-        location_name: latestResult?.location_name ?? '',
-    });
+    const [locationName, setLocationName] = useState(
+        initialLatestResult?.location_name ?? '',
+    );
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState(initialError);
+    const [fieldError, setFieldError] = useState(null);
+    const [latestResult, setLatestResult] = useState(initialLatestResult);
+    const [recentSearches, setRecentSearches] = useState(initialRecentSearches);
 
-    const submit = (event) => {
+    const submit = async (event) => {
         event.preventDefault();
-        form.post(route('debug.tourism.search'), {
-            preserveScroll: false,
-        });
+        setProcessing(true);
+        setError(null);
+        setFieldError(null);
+
+        try {
+            const response = await fetch(route('debug.tourism.search'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ location_name: locationName }),
+            });
+
+            if (response.status === 422) {
+                const payload = await response.json();
+                setFieldError(payload.errors?.location_name?.[0] ?? '入力内容を確認してください。');
+
+                return;
+            }
+
+            if (!response.ok) {
+                setError('検索に失敗しました。');
+
+                return;
+            }
+
+            const payload = await response.json();
+            setLatestResult(payload.latestResult);
+            setRecentSearches(payload.recentSearches ?? []);
+            setError(payload.error);
+        } catch {
+            setError('検索に失敗しました。');
+        } finally {
+            setProcessing(false);
+        }
     };
 
     useEffect(() => {
@@ -62,7 +111,7 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                 behavior: 'smooth',
                 block: 'start',
             });
-        }, 300);
+        }, 400);
 
         return () => window.clearTimeout(timer);
     }, [latestResult]);
@@ -93,13 +142,11 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                     </details>
 
                     <TourismGuideHero
-                        locationName={form.data.location_name}
-                        processing={form.processing}
+                        locationName={locationName}
+                        processing={processing}
                         error={error}
-                        fieldError={form.errors.location_name}
-                        onChange={(event) =>
-                            form.setData('location_name', event.target.value)
-                        }
+                        fieldError={fieldError}
+                        onChange={(event) => setLocationName(event.target.value)}
                         onSubmit={submit}
                     />
 
@@ -120,6 +167,7 @@ export default function Tourism({ recentSearches, latestResult, error }) {
 
                             <div ref={mapSectionRef} className="mt-8 scroll-mt-6">
                                 <TourismMap
+                                    key={latestResult.id}
                                     center={{
                                         latitude: latestResult.latitude,
                                         longitude: latestResult.longitude,
