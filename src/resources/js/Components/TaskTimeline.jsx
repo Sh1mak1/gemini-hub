@@ -18,6 +18,7 @@ const CATEGORY_COLORS = {
 const LABEL_COLUMN_WIDTH = '160px';
 const ROW_HEIGHT = '2.75rem';
 const VISIBLE_ROWS = 3;
+const TIMELINE_WEEK_DAYS = 7;
 
 function parseDate(value) {
     return new Date(`${value}T00:00:00`);
@@ -77,23 +78,15 @@ export default function TaskTimeline({ tasks }) {
             };
         }
 
-        const ends = sortedTasks.map((task) => parseDate(task.timeline_end));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let start = today;
-        let end = new Date(
-            Math.max(...ends.map((d) => d.getTime()), today.getTime()),
-        );
-
-        end = addDays(end, 2);
-
+        const start = today;
+        const end = addDays(today, TIMELINE_WEEK_DAYS);
         const dayCount = daysBetween(start, end);
-        const tickCount = Math.min(dayCount, 8);
-        const tickStep = Math.max(1, Math.floor(dayCount / tickCount));
 
         const tickMarks = [];
-        for (let i = 0; i <= dayCount; i += tickStep) {
+        for (let i = 0; i <= TIMELINE_WEEK_DAYS; i += 1) {
             tickMarks.push(addDays(start, i));
         }
 
@@ -101,13 +94,25 @@ export default function TaskTimeline({ tasks }) {
             const taskStart = parseDate(task.start_date);
             const taskEnd = parseDate(task.timeline_end);
             const effectiveStart = taskStart < today ? today : taskStart;
+            const effectiveEnd = taskEnd > end ? end : taskEnd;
+
+            if (effectiveStart > end || effectiveEnd < today) {
+                return {
+                    ...task,
+                    offsetPercent: 0,
+                    widthPercent: 0,
+                };
+            }
+
             const offsetDays = daysBetween(start, effectiveStart) - 1;
-            const durationDays = daysBetween(effectiveStart, taskEnd);
+            const durationDays = daysBetween(effectiveStart, effectiveEnd);
+            const offsetPercent = (offsetDays / dayCount) * 100;
+            const widthPercent = Math.max((durationDays / dayCount) * 100, 4);
 
             return {
                 ...task,
-                offsetPercent: (offsetDays / dayCount) * 100,
-                widthPercent: Math.max((durationDays / dayCount) * 100, 4),
+                offsetPercent,
+                widthPercent: Math.min(widthPercent, 100 - offsetPercent),
             };
         });
 
@@ -142,7 +147,7 @@ export default function TaskTimeline({ tasks }) {
                     タイムライン
                 </h3>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                    期日が近い順 · スクロールで全件
+                    今日から1週間 · 期日が近い順
                 </p>
             </div>
 
