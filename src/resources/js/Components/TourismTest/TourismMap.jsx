@@ -11,7 +11,7 @@ export default function TourismMap(props) {
 
     if (!MapView) {
         return (
-            <div className="flex h-80 items-center justify-center rounded-3xl border border-[#e2d4bc] bg-[#faf4ea] text-sm text-[#8b7355]">
+            <div className="mx-auto flex h-[100vh] w-[100vh] max-w-full items-center justify-center rounded-3xl border border-[#e2d4bc] bg-[#faf4ea] text-sm text-[#8b7355]">
                 地図を読み込み中…
             </div>
         );
