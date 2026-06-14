@@ -40,6 +40,28 @@ function TaskRow({ task, onComplete, completingId }) {
             className="flex min-w-[520px] items-center gap-2 border-b border-slate-100 px-3 last:border-b-0 dark:border-slate-800"
             style={{ height: TASK_ROW_HEIGHT }}
         >
+            <div className="flex shrink-0 items-center gap-1.5">
+                <Link
+                    href={route('tasks.show', {
+                        source: task.source,
+                        id: task.id,
+                    })}
+                    className="rounded border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300"
+                >
+                    詳細
+                </Link>
+                {task.status === 'pending' && onComplete && (
+                    <button
+                        type="button"
+                        onClick={() => onComplete(task.source, task.id)}
+                        disabled={isCompleting}
+                        className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isCompleting ? '…' : '完了'}
+                    </button>
+                )}
+            </div>
+
             <div className="min-w-0 flex-1">
                 <h4
                     className={`truncate text-xs font-semibold leading-tight ${task.status === 'completed' ? 'text-slate-400 line-through dark:text-slate-600' : 'text-slate-900 dark:text-slate-100'}`}
@@ -71,28 +93,6 @@ function TaskRow({ task, onComplete, completingId }) {
                         </span>
                     )}
                 </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1.5">
-                <Link
-                    href={route('tasks.show', {
-                        source: task.source,
-                        id: task.id,
-                    })}
-                    className="rounded border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300"
-                >
-                    詳細
-                </Link>
-                {task.status === 'pending' && onComplete && (
-                    <button
-                        type="button"
-                        onClick={() => onComplete(task.source, task.id)}
-                        disabled={isCompleting}
-                        className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {isCompleting ? '…' : '完了'}
-                    </button>
-                )}
             </div>
         </article>
     );
