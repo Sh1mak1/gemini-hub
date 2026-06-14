@@ -16,6 +16,11 @@ const TABS = [
         label: 'DB',
         href: () => route('debug.database'),
     },
+    {
+        key: 'tourism',
+        label: '観光テスト',
+        href: () => route('debug.tourism'),
+    },
 ];
 
 export default function AppSectionTabs({ activeTab }) {
@@ -24,7 +29,7 @@ export default function AppSectionTabs({ activeTab }) {
             aria-label="表示切り替え"
             className="rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40"
         >
-            <div className="grid grid-cols-3 gap-1" role="tablist">
+            <div className="grid grid-cols-2 gap-1 sm:grid-cols-4" role="tablist">
                 {TABS.map((tab) => {
                     const isActive = tab.key === activeTab;
 

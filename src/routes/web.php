@@ -3,6 +3,7 @@
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TourismTestController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,6 +39,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/debug/logs', [DebugController::class, 'logs'])->name('debug.logs');
     Route::get('/debug/logs/entries', [DebugController::class, 'logEntries'])->name('debug.logs.entries');
     Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
+    Route::get('/debug/tourism', [TourismTestController::class, 'index'])->name('debug.tourism');
+    Route::post('/debug/tourism/search', [TourismTestController::class, 'search'])->name('debug.tourism.search');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
