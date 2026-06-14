@@ -1,4 +1,5 @@
 import AppSectionTabs from '@/Components/AppSectionTabs';
+import TourismGuideHero from '@/Components/TourismTest/TourismGuideHero';
 import TourismSpotCard from '@/Components/TourismTest/TourismSpotCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
@@ -7,25 +8,23 @@ function SearchHistoryItem({ search }) {
     const spotNames = search.spots.map((spot) => spot.name).join(' / ');
 
     return (
-        <li className="rounded-lg border border-slate-200 px-4 py-3 text-sm dark:border-slate-800">
+        <li className="rounded-xl border border-[#e7dcc8] bg-white/70 px-4 py-3 text-sm text-[#5c4f42]">
             <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    {search.location_name}
-                </span>
+                <span className="font-medium text-[#2c2419]">{search.location_name}</span>
                 <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    className={`rounded-full px-2 py-0.5 text-xs ${
                         search.status === 'completed'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200'
-                            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200'
+                            ? 'bg-[#e8f0e8] text-[#4f6b4f]'
+                            : 'bg-[#f8e8e4] text-[#8f4d3d]'
                     }`}
                 >
-                    {search.status}
+                    {search.status === 'completed' ? '案内済み' : '失敗'}
                 </span>
             </div>
             {search.status === 'completed' ? (
-                <p className="mt-1 text-slate-500 dark:text-slate-400">{spotNames}</p>
+                <p className="mt-1 text-[#8b7355]">{spotNames}</p>
             ) : (
-                <p className="mt-1 text-rose-600 dark:text-rose-300">
+                <p className="mt-1 text-[#9b4d3a]">
                     {search.error_message || '検索に失敗しました'}
                 </p>
             )}
@@ -46,113 +45,103 @@ export default function Tourism({ recentSearches, latestResult, error }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div>
-                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">
-                        Debug / Test
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                        観光情報テスト
-                    </h2>
-                </div>
-            }
-        >
-            <Head title="観光情報テスト" />
+        <AuthenticatedLayout>
+            <Head title="周辺案内デモ">
+                <link
+                    href="https://fonts.bunny.net/css?family=noto-serif-jp:400,600,700|noto-sans-jp:400,500"
+                    rel="stylesheet"
+                />
+            </Head>
 
-            <div className="bg-gradient-to-b from-slate-100 via-white to-white py-8 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
-                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    <AppSectionTabs activeTab="tourism" />
+            <div className="tourism-guide min-h-screen bg-[#f3eadb] font-['Noto_Sans_JP',sans-serif] text-[#2c2419]">
+                <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                    <details className="group mb-6 rounded-2xl border border-[#d9cdb8]/80 bg-[#fffdf8]/70">
+                        <summary className="cursor-pointer list-none px-4 py-3 text-xs tracking-[0.2em] text-[#8b7355] marker:content-none [&::-webkit-details-marker]:hidden">
+                            <span className="inline-flex items-center gap-2">
+                                <span className="rounded-full border border-[#d9cdb8] px-2 py-0.5">
+                                    開発メニュー
+                                </span>
+                                <span className="opacity-70">ToDo / ログ / DB / 周辺案内</span>
+                            </span>
+                        </summary>
+                        <div className="border-t border-[#e7dcc8] p-3">
+                            <AppSectionTabs activeTab="tourism" />
+                        </div>
+                    </details>
 
-                    <section className="rounded-2xl border border-amber-200/80 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100 sm:p-6">
-                        テスト実装です。Gemini の推定に基づく観光情報を表示します。不要になったら
-                        <code className="mx-1 rounded bg-amber-100 px-1 py-0.5 text-xs dark:bg-amber-900/50">
-                            work-logs/2026-06-14-tourism-test-spec.md
-                        </code>
-                        の削除手順に従って除去してください。
-                    </section>
-
-                    <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40 sm:p-6">
-                        <form onSubmit={submit} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                            <div className="flex-1">
-                                <label
-                                    htmlFor="location_name"
-                                    className="block text-sm font-medium text-slate-700 dark:text-slate-200"
-                                >
-                                    土地名・地点名
-                                </label>
-                                <input
-                                    id="location_name"
-                                    type="text"
-                                    value={form.data.location_name}
-                                    onChange={(event) =>
-                                        form.setData('location_name', event.target.value)
-                                    }
-                                    placeholder="例: 金沢駅、富士山五合目"
-                                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                                />
-                                {form.errors.location_name && (
-                                    <p className="mt-2 text-sm text-rose-600 dark:text-rose-300">
-                                        {form.errors.location_name}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={form.processing}
-                                className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
-                            >
-                                {form.processing ? '検索中…' : '近辺の観光地を検索'}
-                            </button>
-                        </form>
-
-                        {error && (
-                            <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100">
-                                {error}
-                            </p>
-                        )}
-                    </section>
+                    <TourismGuideHero
+                        locationName={form.data.location_name}
+                        processing={form.processing}
+                        error={error}
+                        fieldError={form.errors.location_name}
+                        onChange={(event) =>
+                            form.setData('location_name', event.target.value)
+                        }
+                        onSubmit={submit}
+                    />
 
                     {latestResult?.status === 'completed' && latestResult.spots.length > 0 && (
-                        <section className="space-y-4">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                検索結果: {latestResult.location_name}
-                            </h3>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {latestResult.spots.map((spot) => (
+                        <section className="mt-12">
+                            <div className="text-center">
+                                <p className="text-xs tracking-[0.35em] text-[#9a7b4f]">
+                                    RECOMMENDED
+                                </p>
+                                <h2 className="mt-2 font-['Noto_Serif_JP',serif] text-2xl font-semibold tracking-[0.18em] text-[#2c2419] sm:text-3xl">
+                                    おすすめの三箇所
+                                </h2>
+                                <p className="mt-3 text-sm text-[#6b4c3b]">
+                                    <span className="font-medium">{latestResult.location_name}</span>
+                                    を起点に、近隣の見どころをご案内します
+                                </p>
+                            </div>
+
+                            <div className="mt-8 grid gap-6 lg:grid-cols-3">
+                                {latestResult.spots.map((spot, index) => (
                                     <TourismSpotCard
                                         key={spot.name}
                                         spot={spot}
                                         locationName={latestResult.location_name}
+                                        index={index + 1}
                                     />
                                 ))}
                             </div>
                         </section>
                     )}
 
-                    <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40 sm:p-6">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            検索履歴（DB）
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            直近 10 件。操作ログは「操作ログ」タブで
-                            <code className="mx-1 rounded bg-slate-100 px-1 text-xs dark:bg-slate-800">
-                                tourism.test
-                            </code>
-                            を確認できます。
-                        </p>
-                        <ul className="mt-4 space-y-2">
-                            {recentSearches.length === 0 ? (
-                                <li className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                    まだ検索履歴がありません
-                                </li>
-                            ) : (
-                                recentSearches.map((search) => (
-                                    <SearchHistoryItem key={search.id} search={search} />
-                                ))
-                            )}
-                        </ul>
-                    </section>
+                    {!latestResult && recentSearches.length === 0 && (
+                        <section className="mt-12 rounded-3xl border border-dashed border-[#d9cdb8] bg-[#fffdf8]/60 px-6 py-14 text-center">
+                            <p className="font-['Noto_Serif_JP',serif] text-lg tracking-[0.2em] text-[#6b4c3b]">
+                                お宿の名称を入力して、周辺案内をはじめてください
+                            </p>
+                            <p className="mt-3 text-sm text-[#8b7355]">
+                                旅館の公式サイトに掲載する「周辺観光」コンテンツの見本としてご利用いただけます
+                            </p>
+                        </section>
+                    )}
+
+                    <details className="group mt-12 rounded-2xl border border-[#d9cdb8]/70 bg-[#fffdf8]/50">
+                        <summary className="cursor-pointer list-none px-5 py-4 text-sm text-[#8b7355] marker:content-none [&::-webkit-details-marker]:hidden">
+                            管理用：検索履歴（直近 10 件）
+                        </summary>
+                        <div className="border-t border-[#e7dcc8] px-5 py-4">
+                            <p className="text-xs text-[#8b7355]">
+                                テスト実装のため DB と操作ログ（
+                                <code className="rounded bg-[#f3eadb] px-1">tourism.test</code>
+                                ）にも記録されます。
+                            </p>
+                            <ul className="mt-4 space-y-2">
+                                {recentSearches.length === 0 ? (
+                                    <li className="rounded-xl border border-dashed border-[#d9cdb8] px-4 py-8 text-center text-sm text-[#8b7355]">
+                                        まだ検索履歴がありません
+                                    </li>
+                                ) : (
+                                    recentSearches.map((search) => (
+                                        <SearchHistoryItem key={search.id} search={search} />
+                                    ))
+                                )}
+                            </ul>
+                        </div>
+                    </details>
                 </div>
             </div>
         </AuthenticatedLayout>

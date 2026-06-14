@@ -2,10 +2,15 @@ export default function TourismSpotDistance({ distanceText, distanceKm, location
     const label = distanceText || (distanceKm != null ? `約 ${distanceKm}km` : '距離不明');
 
     return (
-        <p className="text-sm text-indigo-700 dark:text-indigo-300">
-            <span className="font-medium">{locationName}</span>
-            <span className="text-slate-500 dark:text-slate-400"> から </span>
-            <span className="font-semibold">{label}</span>
-        </p>
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#e2d4bc] bg-[#faf4ea] px-3 py-1.5 text-xs text-[#6b4c3b]">
+            <span aria-hidden="true" className="text-[#c4a35a]">
+                ◆
+            </span>
+            <span>
+                <span className="font-medium">{locationName}</span>
+                <span className="text-[#8b7355]"> から </span>
+                <span className="font-semibold tracking-wide">{label}</span>
+            </span>
+        </div>
     );
 }

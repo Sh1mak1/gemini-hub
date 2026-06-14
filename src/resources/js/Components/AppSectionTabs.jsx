@@ -18,7 +18,7 @@ const TABS = [
     },
     {
         key: 'tourism',
-        label: '観光テスト',
+        label: '周辺案内',
         href: () => route('debug.tourism'),
     },
 ];
