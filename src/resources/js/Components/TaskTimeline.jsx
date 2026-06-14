@@ -77,17 +77,15 @@ export default function TaskTimeline({ tasks }) {
             };
         }
 
-        const starts = sortedTasks.map((task) => parseDate(task.start_date));
         const ends = sortedTasks.map((task) => parseDate(task.timeline_end));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let start = new Date(Math.min(...starts.map((d) => d.getTime())));
+        let start = today;
         let end = new Date(
             Math.max(...ends.map((d) => d.getTime()), today.getTime()),
         );
 
-        start = addDays(start, -1);
         end = addDays(end, 2);
 
         const dayCount = daysBetween(start, end);
@@ -102,8 +100,9 @@ export default function TaskTimeline({ tasks }) {
         const computedRows = sortedTasks.map((task) => {
             const taskStart = parseDate(task.start_date);
             const taskEnd = parseDate(task.timeline_end);
-            const offsetDays = daysBetween(start, taskStart) - 1;
-            const durationDays = daysBetween(taskStart, taskEnd);
+            const effectiveStart = taskStart < today ? today : taskStart;
+            const offsetDays = daysBetween(start, effectiveStart) - 1;
+            const durationDays = daysBetween(effectiveStart, taskEnd);
 
             return {
                 ...task,

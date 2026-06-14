@@ -36,7 +36,6 @@ export default function TourismGuideHero({
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5c4f42] sm:text-base">
                     お宿の名称や近隣の目印を入力すると、周辺の見どころを三つ厳選してご紹介します。
-                    旅館公式サイトや館内案内タブレットのデモとしてお使いください。
                 </p>
 
                 <form

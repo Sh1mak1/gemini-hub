@@ -46,7 +46,7 @@ export default function Tourism({ recentSearches, latestResult, error }) {
 
     return (
         <AuthenticatedLayout>
-            <Head title="周辺案内デモ">
+            <Head title="周辺案内">
                 <link
                     href="https://fonts.bunny.net/css?family=noto-serif-jp:400,600,700|noto-sans-jp:400,500"
                     rel="stylesheet"
@@ -113,9 +113,6 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                             <p className="font-['Noto_Serif_JP',serif] text-lg tracking-[0.2em] text-[#6b4c3b]">
                                 お宿の名称を入力して、周辺案内をはじめてください
                             </p>
-                            <p className="mt-3 text-sm text-[#8b7355]">
-                                旅館の公式サイトに掲載する「周辺観光」コンテンツの見本としてご利用いただけます
-                            </p>
                         </section>
                     )}
 
@@ -125,7 +122,7 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                         </summary>
                         <div className="border-t border-[#e7dcc8] px-5 py-4">
                             <p className="text-xs text-[#8b7355]">
-                                テスト実装のため DB と操作ログ（
+                                DB と操作ログ（
                                 <code className="rounded bg-[#f3eadb] px-1">tourism.test</code>
                                 ）にも記録されます。
                             </p>
