@@ -62,4 +62,9 @@ fi
 
 docker compose exec -T app php artisan migrate --force --no-interaction
 
+# Frontend assets: required so `php artisan test` (Inertia feature tests render
+# pages and need public/build/manifest.json) and direct rendering work. For HMR
+# dev work run `docker compose exec node npm run dev` instead.
+docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
+
 echo "Cloud environment ready."
