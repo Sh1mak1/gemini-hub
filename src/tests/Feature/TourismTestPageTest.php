@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
+use App\Services\TourismTest\GeocodedPoint;
+use App\Services\TourismTest\NominatimGeocodingService;
 use App\Services\TourismTest\WikipediaImageResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -81,6 +83,26 @@ class TourismTestPageTest extends TestCase
 
         $this->app->instance(WikipediaImageResolver::class, $wikipedia);
 
+        $geocoding = Mockery::mock(NominatimGeocodingService::class);
+        $geocoding->shouldReceive('geocode')
+            ->once()
+            ->with('金沢駅')
+            ->andReturn(new GeocodedPoint(36.578, 136.648));
+        $geocoding->shouldReceive('geocodeNear')
+            ->once()
+            ->with('兼六園, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->andReturn(new GeocodedPoint(36.562, 136.662));
+        $geocoding->shouldReceive('geocodeNear')
+            ->once()
+            ->with('金沢21世紀美術館, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->andReturn(new GeocodedPoint(36.560, 136.658));
+        $geocoding->shouldReceive('geocodeNear')
+            ->once()
+            ->with('東茶屋街, 金沢駅', Mockery::type(GeocodedPoint::class))
+            ->andReturn(new GeocodedPoint(36.571, 136.671));
+
+        $this->app->instance(NominatimGeocodingService::class, $geocoding);
+
         $this->actingAs($user)
             ->post(route('debug.tourism.search'), [
                 'location_name' => '金沢駅',
@@ -89,15 +111,20 @@ class TourismTestPageTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Debug/Tourism')
                 ->where('latestResult.location_name', '金沢駅')
+                ->where('latestResult.latitude', 36.578)
+                ->where('latestResult.longitude', 136.648)
                 ->where('latestResult.status', 'completed')
                 ->has('latestResult.spots', 3)
                 ->where('latestResult.spots.0.name', '兼六園')
+                ->where('latestResult.spots.0.latitude', 36.562)
                 ->has('recentSearches', 1)
             );
 
         $this->assertDatabaseHas('tourism_test_searches', [
             'location_name' => '金沢駅',
             'status' => 'completed',
+            'latitude' => 36.578,
+            'longitude' => 136.648,
         ]);
 
         $this->assertDatabaseCount('tourism_test_spots', 3);

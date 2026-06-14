@@ -66,12 +66,16 @@ class TourismTestController extends Controller
         return [
             'id' => $search->id,
             'location_name' => $search->location_name,
+            'latitude' => $search->latitude,
+            'longitude' => $search->longitude,
             'status' => $search->status,
             'error_message' => $search->error_message,
             'created_at' => $search->created_at?->toIso8601String(),
             'spots' => $search->spots
                 ->map(fn ($spot) => [
                     'name' => $spot->name,
+                    'latitude' => $spot->latitude,
+                    'longitude' => $spot->longitude,
                     'distance_km' => $spot->distance_km,
                     'distance_text' => $spot->distance_text,
                     'description' => $spot->description,

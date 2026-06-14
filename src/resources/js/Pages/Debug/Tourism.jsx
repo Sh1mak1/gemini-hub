@@ -1,8 +1,10 @@
 import AppSectionTabs from '@/Components/AppSectionTabs';
 import TourismGuideHero from '@/Components/TourismTest/TourismGuideHero';
+import TourismMap from '@/Components/TourismTest/TourismMap';
 import TourismSpotCard from '@/Components/TourismTest/TourismSpotCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 function SearchHistoryItem({ search }) {
     const spotNames = search.spots.map((spot) => spot.name).join(' / ');
@@ -33,6 +35,7 @@ function SearchHistoryItem({ search }) {
 }
 
 export default function Tourism({ recentSearches, latestResult, error }) {
+    const [activeSpotIndex, setActiveSpotIndex] = useState(null);
     const form = useForm({
         location_name: latestResult?.location_name ?? '',
     });
@@ -95,6 +98,19 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                                 </p>
                             </div>
 
+                            <div className="mt-8">
+                                <TourismMap
+                                    center={{
+                                        latitude: latestResult.latitude,
+                                        longitude: latestResult.longitude,
+                                    }}
+                                    locationName={latestResult.location_name}
+                                    spots={latestResult.spots}
+                                    activeSpotIndex={activeSpotIndex}
+                                    onSpotSelect={setActiveSpotIndex}
+                                />
+                            </div>
+
                             <div className="mt-8 grid gap-6 lg:grid-cols-3">
                                 {latestResult.spots.map((spot, index) => (
                                     <TourismSpotCard
@@ -102,6 +118,7 @@ export default function Tourism({ recentSearches, latestResult, error }) {
                                         spot={spot}
                                         locationName={latestResult.location_name}
                                         index={index + 1}
+                                        highlighted={activeSpotIndex === index}
                                     />
                                 ))}
                             </div>

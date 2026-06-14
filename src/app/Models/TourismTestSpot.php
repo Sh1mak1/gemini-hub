@@ -11,6 +11,8 @@ class TourismTestSpot extends Model
         'tourism_test_search_id',
         'sort_order',
         'name',
+        'latitude',
+        'longitude',
         'distance_km',
         'distance_text',
         'description',
@@ -20,6 +22,8 @@ class TourismTestSpot extends Model
     protected function casts(): array
     {
         return [
+            'latitude' => 'float',
+            'longitude' => 'float',
             'distance_km' => 'float',
         ];
     }

@@ -10,6 +10,8 @@ readonly class TourismSpotData
         public string $distanceText,
         public string $description,
         public ?string $imageUrl = null,
+        public ?float $latitude = null,
+        public ?float $longitude = null,
     ) {}
 
     /**
@@ -36,6 +38,8 @@ readonly class TourismSpotData
             'tourism_test_search_id' => $searchId,
             'sort_order' => $sortOrder,
             'name' => $this->name,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
             'distance_km' => $this->distanceKm,
             'distance_text' => $this->distanceText,
             'description' => $this->description,
@@ -54,6 +58,8 @@ readonly class TourismSpotData
             'distance_text' => $this->distanceText,
             'description' => $this->description,
             'image_url' => $this->imageUrl,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
         ];
     }
 }

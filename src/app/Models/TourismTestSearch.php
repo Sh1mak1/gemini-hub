@@ -9,9 +9,19 @@ class TourismTestSearch extends Model
 {
     protected $fillable = [
         'location_name',
+        'latitude',
+        'longitude',
         'status',
         'error_message',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'float',
+            'longitude' => 'float',
+        ];
+    }
 
     public function spots(): HasMany
     {

@@ -16,6 +16,7 @@ class TourismSpotSearchService
     public function __construct(
         private GeminiClient $gemini,
         private WikipediaImageResolver $imageResolver,
+        private NominatimGeocodingService $geocoding,
     ) {}
 
     /**
@@ -42,10 +43,22 @@ class TourismSpotSearchService
         ]);
 
         try {
+            $center = $this->geocoding->geocode($locationName);
+
+            if ($center === null) {
+                throw new RuntimeException('入力地点の位置を特定できませんでした。');
+            }
+
+            $search->update([
+                'latitude' => $center->latitude,
+                'longitude' => $center->longitude,
+            ]);
+
             $spots = $this->fetchSpots($locationName);
             $spotsWithImages = $this->attachImages($spots);
+            $spotsWithCoordinates = $this->attachCoordinates($spotsWithImages, $locationName, $center);
 
-            foreach ($spotsWithImages as $index => $spot) {
+            foreach ($spotsWithCoordinates as $index => $spot) {
                 $search->spots()->create($spot->toSpotAttributes($search->id, $index + 1));
             }
 
@@ -57,12 +70,16 @@ class TourismSpotSearchService
             OperationLogger::info('tourism.test', 'search_completed', [
                 'search_id' => $search->id,
                 'location_name' => $locationName,
-                'spot_names' => array_map(fn (TourismSpotData $spot) => $spot->name, $spotsWithImages),
+                'spot_names' => array_map(fn (TourismSpotData $spot) => $spot->name, $spotsWithCoordinates),
+                'geocoded_spots' => count(array_filter(
+                    $spotsWithCoordinates,
+                    fn (TourismSpotData $spot) => $spot->latitude !== null && $spot->longitude !== null,
+                )),
             ]);
 
             return [
                 'search' => $search->fresh(['spots']),
-                'spots' => $spotsWithImages,
+                'spots' => $spotsWithCoordinates,
             ];
         } catch (Throwable $exception) {
             $search->update([
@@ -135,6 +152,30 @@ class TourismSpotSearchService
                 distanceText: $spot->distanceText,
                 description: $spot->description,
                 imageUrl: $imageUrl,
+            );
+        }, $spots);
+    }
+
+    /**
+     * @param  list<TourismSpotData>  $spots
+     * @return list<TourismSpotData>
+     */
+    private function attachCoordinates(array $spots, string $locationName, GeocodedPoint $center): array
+    {
+        return array_map(function (TourismSpotData $spot) use ($locationName, $center): TourismSpotData {
+            $coordinates = $this->geocoding->geocodeNear(
+                "{$spot->name}, {$locationName}",
+                $center,
+            );
+
+            return new TourismSpotData(
+                name: $spot->name,
+                distanceKm: $spot->distanceKm,
+                distanceText: $spot->distanceText,
+                description: $spot->description,
+                imageUrl: $spot->imageUrl,
+                latitude: $coordinates?->latitude,
+                longitude: $coordinates?->longitude,
             );
         }, $spots);
     }
