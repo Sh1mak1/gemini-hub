@@ -167,6 +167,22 @@ docker compose run --rm node sh -c "npm ci --legacy-peer-deps && npm run build"
 - Gemini / Slack の実 API テストは不要なら Unit テストのみでよい
 - デプロイは `main` push → GitHub Actions（手動 SSH 不要）
 
+### ローカルでアプリを開く / 手動テストする際の落とし穴（重要）
+
+- **直接 `localhost:${APP_PORT}`（既定 8000）へアクセスすると HTTP 500 になる。**
+  `bootstrap/app.php` の `trustProxies(at: '*')` と、nginx が常に `X-Forwarded-Host` を
+  転送する（直アクセス時は空文字）組み合わせで、Symfony `Request::getPort()` が
+  「Uninitialized string offset 0」で落ちる。本番では前段の Caddy がこのヘッダを必ず付与するため発生しない。
+  ブラウザ／手動テストでは **前段にリバースプロキシを立て、`X-Forwarded-Host`（ポート込み・`$http_host`）と
+  `X-Forwarded-Proto` を付与する**こと。curl なら `-H "X-Forwarded-Host: localhost:8080" -H "X-Forwarded-Proto: http"` を付ける。
+  プロキシが `Host`/`X-Forwarded-Host` でポートを落とすとログイン後のリダイレクト先がポート無し URL になり遷移できないので、`$http_host`（ポート込み）を使う。
+- **公開ユーザー登録は無効（`/register` は 404）。** 手動／UI テスト用ユーザーは
+  `docker compose exec app php artisan tinker` で作成する（例: `User::firstOrCreate(['email'=>'dev@example.com'],['name'=>'Dev','password'=>bcrypt('password123')])`）。
+- **Vite manifest が無いと `php artisan test`（Inertia ページを描画する Feature テスト）が失敗する。**
+  install 時にフロントをビルド済み。HMR 開発時は `docker compose exec node npm run dev`（`public/hot` 生成で manifest 不要）。
+- Drafts 取り込みは非同期。`POST /api/drafts/tasks/add`（202）後、`php artisan queue:work --stop-when-empty` で
+  `jobs` キューを処理すると Gemini 構造化 → `tasks` に保存される（失敗時は `fallback_tasks`）。
+
 環境定義: `.cursor/environment.json`, `.cursor/Dockerfile`, `.cursor/scripts/cloud-env-install.sh`
 
 ---
