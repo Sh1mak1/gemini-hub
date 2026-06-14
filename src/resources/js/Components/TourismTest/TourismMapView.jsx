@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import TourismSpotExpandedOverlay from '@/Components/TourismTest/TourismSpotExpandedOverlay';
 import TourismSpotMiniCard from '@/Components/TourismTest/TourismSpotMiniCard';
 
-const MINI_CARD_OFFSETS = [
-    { x: 18, y: -150 },
-    { x: -170, y: -60 },
-    { x: 18, y: 24 },
-];
+const CARD_WIDTH = 160;
+const CARD_HEIGHT = 132;
+const PIN_RADIUS = 15;
+const CENTER_RADIUS = 17;
+const GAP = 20;
+const BOUNDS_PADDING = 12;
+
+const ANGLE_DELTAS = [0, 0.55, -0.55, 1.1, -1.1, 1.65, -1.65, 2.2, -2.2];
+const PLACEMENT_DISTANCES = [96, 112, 128, 144, 168];
 
 function createCenterMarkerIcon() {
     return L.divIcon({
@@ -77,6 +81,122 @@ function lockMapInteractions(map) {
     }
 }
 
+function makeRect(left, top, width, height) {
+    return {
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+    };
+}
+
+function rectsOverlap(a, b, padding = 10) {
+    return !(
+        a.right + padding < b.left
+        || b.right + padding < a.left
+        || a.bottom + padding < b.top
+        || b.bottom + padding < a.top
+    );
+}
+
+function rectOverlapsCircle(rect, x, y, radius, padding = 10) {
+    const closestX = Math.max(rect.left, Math.min(x, rect.right));
+    const closestY = Math.max(rect.top, Math.min(y, rect.bottom));
+    const dx = x - closestX;
+    const dy = y - closestY;
+
+    return dx * dx + dy * dy < (radius + padding) ** 2;
+}
+
+function rectWithinBounds(rect, width, height, padding = BOUNDS_PADDING) {
+    return (
+        rect.left >= padding
+        && rect.top >= padding
+        && rect.right <= width - padding
+        && rect.bottom <= height - padding
+    );
+}
+
+function closestPointOnRect(px, py, rect) {
+    const x = Math.max(rect.left, Math.min(px, rect.right));
+    const y = Math.max(rect.top, Math.min(py, rect.bottom));
+
+    if (x !== px || y !== py) {
+        return { x, y };
+    }
+
+    const distances = [
+        { x: rect.left, y: py, d: Math.abs(px - rect.left) },
+        { x: rect.right, y: py, d: Math.abs(px - rect.right) },
+        { x: px, y: rect.top, d: Math.abs(py - rect.top) },
+        { x: px, y: rect.bottom, d: Math.abs(py - rect.bottom) },
+    ];
+
+    const nearest = distances.sort((a, b) => a.d - b.d)[0];
+
+    return { x: nearest.x, y: nearest.y };
+}
+
+function connectorPoints(pinX, pinY, rect) {
+    const end = closestPointOnRect(pinX, pinY, rect);
+    const dx = end.x - pinX;
+    const dy = end.y - pinY;
+    const length = Math.hypot(dx, dy) || 1;
+
+    return {
+        lineStartX: pinX + (dx / length) * PIN_RADIUS,
+        lineStartY: pinY + (dy / length) * PIN_RADIUS,
+        lineEndX: end.x,
+        lineEndY: end.y,
+    };
+}
+
+function placeCard(pinX, pinY, centerX, centerY, placedRects, mapSize) {
+    const baseAngle = Math.atan2(pinY - centerY, pinX - centerX);
+
+    for (const distance of PLACEMENT_DISTANCES) {
+        for (const delta of ANGLE_DELTAS) {
+            const angle = baseAngle + delta;
+            const cardCenterX = pinX + Math.cos(angle) * distance;
+            const cardCenterY = pinY + Math.sin(angle) * distance;
+            const left = cardCenterX - CARD_WIDTH / 2;
+            const top = cardCenterY - CARD_HEIGHT / 2;
+            const rect = makeRect(left, top, CARD_WIDTH, CARD_HEIGHT);
+
+            const overlaps = placedRects.some((placed) => rectsOverlap(rect, placed))
+                || rectOverlapsCircle(rect, pinX, pinY, PIN_RADIUS)
+                || rectOverlapsCircle(rect, centerX, centerY, CENTER_RADIUS)
+                || !rectWithinBounds(rect, mapSize.x, mapSize.y);
+
+            if (!overlaps) {
+                return {
+                    left,
+                    top,
+                    rect,
+                    ...connectorPoints(pinX, pinY, rect),
+                };
+            }
+        }
+    }
+
+    const fallbackLeft = Math.min(
+        Math.max(pinX + PIN_RADIUS + GAP, BOUNDS_PADDING),
+        mapSize.x - CARD_WIDTH - BOUNDS_PADDING,
+    );
+    const fallbackTop = Math.min(
+        Math.max(pinY - CARD_HEIGHT - PIN_RADIUS - GAP, BOUNDS_PADDING),
+        mapSize.y - CARD_HEIGHT - BOUNDS_PADDING,
+    );
+    const rect = makeRect(fallbackLeft, fallbackTop, CARD_WIDTH, CARD_HEIGHT);
+
+    return {
+        left: fallbackLeft,
+        top: fallbackTop,
+        rect,
+        ...connectorPoints(pinX, pinY, rect),
+    };
+}
+
 function FitMapBounds({ center, mappableSpots }) {
     const map = useMap();
 
@@ -103,7 +223,8 @@ function FitMapBounds({ center, mappableSpots }) {
     return null;
 }
 
-function MapSpotMiniCards({
+function MapSpotOverlay({
+    center,
     mappableSpots,
     expandedSpotIndex,
     onSpotClick,
@@ -112,22 +233,44 @@ function MapSpotMiniCards({
     const [layout, setLayout] = useState([]);
 
     const updateLayout = useCallback(() => {
-        setLayout(
-            mappableSpots.map((spot) => {
-                const point = map.latLngToContainerPoint([
-                    spot.latitude,
-                    spot.longitude,
-                ]);
-                const offset = MINI_CARD_OFFSETS[spot.index % MINI_CARD_OFFSETS.length];
+        const mapSize = map.getSize();
+        const centerPoint = map.latLngToContainerPoint([
+            center.latitude,
+            center.longitude,
+        ]);
+        const placedRects = [];
 
-                return {
-                    ...spot,
-                    left: point.x + offset.x,
-                    top: point.y + offset.y,
-                };
-            }),
-        );
-    }, [map, mappableSpots]);
+        const nextLayout = mappableSpots.map((spot) => {
+            const pinPoint = map.latLngToContainerPoint([
+                spot.latitude,
+                spot.longitude,
+            ]);
+            const placement = placeCard(
+                pinPoint.x,
+                pinPoint.y,
+                centerPoint.x,
+                centerPoint.y,
+                placedRects,
+                mapSize,
+            );
+
+            placedRects.push(placement.rect);
+
+            return {
+                ...spot,
+                pinX: pinPoint.x,
+                pinY: pinPoint.y,
+                left: placement.left,
+                top: placement.top,
+                lineStartX: placement.lineStartX,
+                lineStartY: placement.lineStartY,
+                lineEndX: placement.lineEndX,
+                lineEndY: placement.lineEndY,
+            };
+        });
+
+        setLayout(nextLayout);
+    }, [map, center, mappableSpots]);
 
     useEffect(() => {
         updateLayout();
@@ -152,11 +295,32 @@ function MapSpotMiniCards({
 
     return createPortal(
         <div className="pointer-events-none absolute inset-0 z-[700]">
+            <svg className="absolute inset-0 h-full w-full overflow-visible">
+                {layout.map((spot) => {
+                    const isActive =
+                        expandedSpotIndex === null
+                        || expandedSpotIndex === spot.index;
+
+                    return (
+                        <line
+                            key={`connector-${spot.name}`}
+                            x1={spot.lineStartX}
+                            y1={spot.lineStartY}
+                            x2={spot.lineEndX}
+                            y2={spot.lineEndY}
+                            stroke="#c4a35a"
+                            strokeWidth="2"
+                            strokeDasharray="6 8"
+                            opacity={isActive ? 0.75 : 0.3}
+                        />
+                    );
+                })}
+            </svg>
             {layout.map((spot) => (
                 <div
                     key={spot.name}
-                    className="pointer-events-auto absolute -translate-y-1/2"
-                    style={{ left: spot.left, top: spot.top }}
+                    className="pointer-events-auto absolute"
+                    style={{ left: spot.left, top: spot.top, width: CARD_WIDTH }}
                 >
                     <TourismSpotMiniCard
                         spot={spot}
@@ -217,25 +381,6 @@ export default function TourismMapView({
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <FitMapBounds center={center} mappableSpots={mappableSpots} />
-                {mappableSpots.map((spot) => (
-                    <Polyline
-                        key={`line-${spot.name}`}
-                        positions={[
-                            mapCenter,
-                            [spot.latitude, spot.longitude],
-                        ]}
-                        pathOptions={{
-                            color: '#c4a35a',
-                            weight: 2,
-                            opacity:
-                                expandedSpotIndex === null ||
-                                expandedSpotIndex === spot.index
-                                    ? 0.55
-                                    : 0.25,
-                            dashArray: '6 8',
-                        }}
-                    />
-                ))}
                 <Marker position={mapCenter} icon={createCenterMarkerIcon()} />
                 {mappableSpots.map((spot) => (
                     <Marker
@@ -246,14 +391,15 @@ export default function TourismMapView({
                             click: () => setExpandedSpotIndex(spot.index),
                         }}
                         opacity={
-                            expandedSpotIndex === null ||
-                            expandedSpotIndex === spot.index
+                            expandedSpotIndex === null
+                            || expandedSpotIndex === spot.index
                                 ? 1
                                 : 0.65
                         }
                     />
                 ))}
-                <MapSpotMiniCards
+                <MapSpotOverlay
+                    center={center}
                     mappableSpots={mappableSpots}
                     expandedSpotIndex={expandedSpotIndex}
                     onSpotClick={setExpandedSpotIndex}
