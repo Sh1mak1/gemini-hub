@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # DOCKER INSTALLATION (Cursor-recommended for Compose)
 ########################################################
 
-RUN apt-get update && apt-get install -y ca-certificates curl gnupg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg git sudo && rm -rf /var/lib/apt/lists/*
 
 RUN install -m 0755 -d /etc/apt/keyrings && \
     curl --retry 3 --retry-delay 5 -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
@@ -38,7 +38,12 @@ RUN update-alternatives --set iptables /usr/sbin/iptables-legacy && \
 # UBUNTU USER (docker + sudo)
 ########################################################
 
-RUN echo 'PasswordAuthentication no\nChallengeResponseAuthentication no\nUsePAM no' > /etc/ssh/sshd_config.d/disable_password_auth.conf
+RUN mkdir -p /etc/ssh/sshd_config.d && \
+    printf '%s\n' \
+      'PasswordAuthentication no' \
+      'ChallengeResponseAuthentication no' \
+      'UsePAM no' \
+      > /etc/ssh/sshd_config.d/disable_password_auth.conf
 
 RUN id -u ubuntu &>/dev/null || useradd -m -s /bin/bash ubuntu
 RUN groupadd -f docker && usermod -aG docker ubuntu
