@@ -9,6 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # DOCKER INSTALLATION (Cursor-recommended for Compose)
 ########################################################
 
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg && rm -rf /var/lib/apt/lists/*
+
 RUN install -m 0755 -d /etc/apt/keyrings && \
     curl --retry 3 --retry-delay 5 -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
     chmod a+r /etc/apt/keyrings/docker.gpg && \
