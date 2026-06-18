@@ -2,16 +2,16 @@ import { useMemo } from 'react';
 
 const CATEGORY_COLORS = {
     work: {
-        bar: 'from-indigo-500 to-violet-500',
-        dot: 'bg-indigo-500',
+        bar: 'from-indigo-500 to-violet-500 dark:from-cyan-300 dark:via-fuchsia-400 dark:to-blue-500 dark:shadow-[0_0_18px_rgba(34,211,238,0.6)]',
+        dot: 'bg-indigo-500 dark:bg-cyan-300 dark:shadow-[0_0_10px_rgba(34,211,238,0.7)]',
     },
     hobby: {
-        bar: 'from-emerald-500 to-teal-500',
-        dot: 'bg-emerald-500',
+        bar: 'from-emerald-500 to-teal-500 dark:from-lime-300 dark:via-emerald-300 dark:to-cyan-300 dark:shadow-[0_0_18px_rgba(0,255,159,0.55)]',
+        dot: 'bg-emerald-500 dark:bg-lime-300 dark:shadow-[0_0_10px_rgba(163,230,53,0.65)]',
     },
     other: {
-        bar: 'from-slate-500 to-slate-600',
-        dot: 'bg-slate-500',
+        bar: 'from-slate-500 to-slate-600 dark:from-fuchsia-400 dark:via-purple-400 dark:to-cyan-300 dark:shadow-[0_0_18px_rgba(217,70,239,0.55)]',
+        dot: 'bg-slate-500 dark:bg-fuchsia-400 dark:shadow-[0_0_10px_rgba(217,70,239,0.65)]',
     },
 };
 
@@ -238,9 +238,9 @@ export default function TaskTimeline({ tasks }) {
                                         className="flex items-center border-b border-slate-100 px-3 last:border-b-0 dark:border-slate-800"
                                         style={{ height: ROW_HEIGHT }}
                                     >
-                                        <div className="timeline-bar-track relative h-5 w-full rounded bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-900/80 dark:ring-slate-800">
+                                        <div className="timeline-bar-track relative h-5 w-full rounded bg-white/80 ring-1 ring-slate-200/80 dark:bg-slate-950/80 dark:ring-cyan-300/20 dark:shadow-[inset_0_0_14px_rgba(15,23,42,0.9)]">
                                             <div
-                                                className={`timeline-bar-fill absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r ${colors.bar} ${isCompleted ? 'timeline-bar-completed opacity-35' : 'opacity-95'}`}
+                                                className={`timeline-bar-fill absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r dark:brightness-125 dark:saturate-150 ${colors.bar} ${isCompleted ? 'timeline-bar-completed opacity-35' : 'opacity-95'}`}
                                                 style={{
                                                     left: `${task.offsetPercent}%`,
                                                     width: `${task.widthPercent}%`,
