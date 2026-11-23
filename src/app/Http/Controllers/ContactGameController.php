@@ -155,7 +155,7 @@ class ContactGameController extends Controller
     private function errorMessage(Throwable $exception): string
     {
         if ($exception instanceof GeminiApiException) {
-            return 'Gemini との通信に失敗しました。しばらくしてからもう一度送ってください。';
+            return '返事を受け取れませんでした。しばらくしてからもう一度送ってください。';
         }
 
         if ($exception instanceof RuntimeException) {

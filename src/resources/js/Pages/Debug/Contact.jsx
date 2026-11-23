@@ -1,6 +1,6 @@
 import AppSectionTabs from '@/Components/AppSectionTabs';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 function csrfToken() {
@@ -18,6 +18,7 @@ function senderLabel(game) {
 }
 
 export default function Contact({ game: initialGame }) {
+    const canDebug = usePage().props.auth?.user?.role !== 'guest';
     const [game, setGame] = useState(initialGame);
     const [sentence, setSentence] = useState('');
     const [message, setMessage] = useState('');
@@ -32,6 +33,12 @@ export default function Contact({ game: initialGame }) {
     const debugEnabledRef = useRef(false);
 
     useEffect(() => {
+        if (!canDebug) {
+            debugEnabledRef.current = false;
+            setDebugEnabled(false);
+            return;
+        }
+
         try {
             const enabled = window.localStorage.getItem('contact-debug-mode') === '1';
             debugEnabledRef.current = enabled;
@@ -39,7 +46,7 @@ export default function Contact({ game: initialGame }) {
         } catch {
             debugEnabledRef.current = false;
         }
-    }, []);
+    }, [canDebug]);
 
     useEffect(() => {
         setResourceDraft(game?.resource_remaining ?? 0);
@@ -296,18 +303,20 @@ export default function Contact({ game: initialGame }) {
                         >
                             {hubOpen ? 'メニューを閉じる' : 'メニュー'}
                         </button>
-                        <button
-                            type="button"
-                            onClick={toggleDebug}
-                            aria-pressed={debugEnabled}
-                            className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                                debugEnabled
-                                    ? 'bg-[#e0b15a] text-[#241c10]'
-                                    : 'bg-[#2a241c] text-[#b7ab96]'
-                            }`}
-                        >
-                            デバッグ {debugEnabled ? 'オン' : 'オフ'}
-                        </button>
+                        {canDebug && (
+                            <button
+                                type="button"
+                                onClick={toggleDebug}
+                                aria-pressed={debugEnabled}
+                                className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
+                                    debugEnabled
+                                        ? 'bg-[#e0b15a] text-[#241c10]'
+                                        : 'bg-[#2a241c] text-[#b7ab96]'
+                                }`}
+                            >
+                                デバッグ {debugEnabled ? 'オン' : 'オフ'}
+                            </button>
+                        )}
                     </div>
 
                     {error && (

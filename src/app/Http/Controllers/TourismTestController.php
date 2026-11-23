@@ -12,10 +12,10 @@ use Throwable;
 
 class TourismTestController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         return Inertia::render('Debug/Tourism', [
-            'recentSearches' => $this->formatRecentSearches(),
+            'recentSearches' => $request->user()?->isGuest() ? [] : $this->formatRecentSearches(),
             'latestResult' => null,
             'error' => null,
         ]);
@@ -32,13 +32,13 @@ class TourismTestController extends Controller
 
             return response()->json([
                 'latestResult' => $this->formatSearch($result['search']),
-                'recentSearches' => $this->formatRecentSearches(),
+                'recentSearches' => $request->user()?->isGuest() ? [] : $this->formatRecentSearches(),
                 'error' => null,
             ]);
         } catch (Throwable $exception) {
             return response()->json([
                 'latestResult' => null,
-                'recentSearches' => $this->formatRecentSearches(),
+                'recentSearches' => $request->user()?->isGuest() ? [] : $this->formatRecentSearches(),
                 'error' => $exception->getMessage(),
             ]);
         }

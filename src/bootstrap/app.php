@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'owner' => \App\Http\Middleware\EnsureOwner::class,
             'slack.signature' => \App\Http\Middleware\VerifySlackSignature::class,
             'drafts.token' => \App\Http\Middleware\VerifyDraftsToken::class,
         ]);
