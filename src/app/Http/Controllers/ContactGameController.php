@@ -121,6 +121,7 @@ class ContactGameController extends Controller
         $body = [
             'game' => $game?->toPublicArray(),
             'error' => $error,
+            'retryable' => false,
         ];
 
         if ($game && $request?->header('X-Contact-Debug') === '1') {
@@ -132,7 +133,11 @@ class ContactGameController extends Controller
 
     private function failure(Throwable $exception, ?ContactGame $game = null, ?Request $request = null): JsonResponse
     {
-        return response()->json($this->payload($game, $this->errorMessage($exception), $request), 422);
+        $body = $this->payload($game, $this->errorMessage($exception), $request);
+        $body['retryable'] = $exception instanceof GeminiApiException
+            || ($exception instanceof RuntimeException && str_contains($exception->getMessage(), '生成に失敗'));
+
+        return response()->json($body, 422);
     }
 
     private function errorMessage(Throwable $exception): string
