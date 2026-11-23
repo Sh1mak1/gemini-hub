@@ -45,6 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/debug/contact', [ContactGameController::class, 'index'])->name('debug.contact');
     Route::post('/debug/contact', [ContactGameController::class, 'start'])->name('debug.contact.start');
     Route::post('/debug/contact/{contactGame}/messages', [ContactGameController::class, 'message'])->name('debug.contact.message');
+    Route::get('/debug/contact/{contactGame}/debug', [ContactGameController::class, 'debug'])->name('debug.contact.debug');
+    Route::patch('/debug/contact/{contactGame}/resource', [ContactGameController::class, 'updateResource'])->name('debug.contact.resource');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

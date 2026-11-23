@@ -25,6 +25,12 @@ class ContactGameTest extends TestCase
         $this->postJson(route('debug.contact.start'), [
             'sentence' => '雨の駅で、終電を逃した猫が弁護士をしている。',
         ])->assertRedirect(route('login'));
+
+        $owner = User::factory()->create();
+        $game = $this->ongoingGame($owner, resourceRemaining: 4, progress: 10);
+        $this->patchJson(route('debug.contact.resource', $game), [
+            'resource_remaining' => 3,
+        ])->assertRedirect(route('login'));
     }
 
     public function test_authenticated_user_can_view_contact_page(): void
@@ -215,6 +221,107 @@ class ContactGameTest extends TestCase
                 'message' => '応答せよ。',
             ])
             ->assertNotFound();
+    }
+
+    public function test_debug_endpoint_shows_progress_only_to_the_owner(): void
+    {
+        $owner = User::factory()->create();
+        $intruder = User::factory()->create();
+        $game = $this->ongoingGame($owner, resourceRemaining: 6, progress: 40);
+
+        $this->actingAs($owner)
+            ->getJson(route('debug.contact.debug', $game))
+            ->assertOk()
+            ->assertJsonPath('debug.progress', 40)
+            ->assertJsonPath('debug.useful_interventions.0', '影を伝う')
+            ->assertJsonPath('debug.misconception', '酸素はまだ半分ある');
+
+        $this->actingAs($intruder)
+            ->getJson(route('debug.contact.debug', $game))
+            ->assertNotFound();
+    }
+
+    public function test_debug_resource_can_be_changed_and_reopens_a_lost_game(): void
+    {
+        $user = User::factory()->create();
+        $game = $this->ongoingGame($user, resourceRemaining: 0, progress: 30);
+        $game->update([
+            'status' => 'lost',
+            'loss_reason' => '酸素が尽きた。',
+        ]);
+
+        $this->actingAs($user)
+            ->patchJson(route('debug.contact.resource', $game), [
+                'resource_remaining' => 12,
+            ], [
+                'X-Contact-Debug' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('game.status', 'ongoing')
+            ->assertJsonPath('game.resource_remaining', 12)
+            ->assertJsonPath('game.resource_max', 12)
+            ->assertJsonPath('game.loss_reason', null)
+            ->assertJsonPath('debug.progress', 30);
+
+        $this->actingAs($user)
+            ->patchJson(route('debug.contact.resource', $game), [
+                'resource_remaining' => 120,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('game.resource_remaining', 12);
+
+        $this->assertSame(12, $game->fresh()->resource_remaining);
+    }
+
+    public function test_message_includes_progress_only_when_debug_header_is_sent(): void
+    {
+        $user = User::factory()->create();
+        $game = $this->ongoingGame($user, resourceRemaining: 8, progress: 0);
+
+        $this->mockGemini([
+            'reply' => '了解した。',
+            'resource_remaining' => 7,
+            'change_note' => '岩陰に入った。',
+            'status' => 'ongoing',
+            'loss_reason' => '',
+            'hidden_progress' => 20,
+            'hidden_misconception' => 'まだ大丈夫だと思っている。',
+            'hidden_intervention_1' => '影を伝う',
+            'hidden_intervention_2' => '',
+            'hidden_intervention_3' => '',
+            'hidden_doom' => '酸欠で倒れる。',
+        ]);
+
+        $withoutDebug = $this->actingAs($user)
+            ->postJson(route('debug.contact.message', $game), [
+                'message' => '岩陰に入れ。',
+            ]);
+
+        $withoutDebug->assertOk();
+        $this->assertArrayNotHasKey('debug', $withoutDebug->json());
+
+        $this->mockGemini([
+            'reply' => 'もう一段進む。',
+            'resource_remaining' => 6,
+            'change_note' => '尾根が見えた。',
+            'status' => 'ongoing',
+            'loss_reason' => '',
+            'hidden_progress' => 45,
+            'hidden_misconception' => '',
+            'hidden_intervention_1' => '影を伝う',
+            'hidden_intervention_2' => '',
+            'hidden_intervention_3' => '',
+            'hidden_doom' => '酸欠で倒れる。',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('debug.contact.message', $game), [
+                'message' => 'そのまま尾根へ行け。',
+            ], [
+                'X-Contact-Debug' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('debug.progress', 45);
     }
 
     public function test_page_reloads_the_latest_game_without_hidden_state(): void
