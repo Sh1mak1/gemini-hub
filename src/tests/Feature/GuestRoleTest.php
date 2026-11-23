@@ -43,6 +43,11 @@ class GuestRoleTest extends TestCase
         $this->actingAs($guest)->get(route('debug.contact'))->assertOk();
         $this->actingAs($guest)->get(route('dashboard'))->assertRedirect(route('debug.contact'));
 
+        $this->actingAs($guest)->get(route('profile.edit'))->assertRedirect(route('debug.contact'));
+        $this->actingAs($guest)->patch(route('profile.update'), [
+            'name' => '改名',
+            'email' => 'changed@example.com',
+        ])->assertRedirect(route('debug.contact'));
         $this->actingAs($guest)->get(route('tasks.index'))->assertRedirect(route('debug.contact'));
         $this->actingAs($guest)->get(route('debug.logs'))->assertRedirect(route('debug.contact'));
         $this->actingAs($guest)->get(route('debug.database'))->assertRedirect(route('debug.contact'));
