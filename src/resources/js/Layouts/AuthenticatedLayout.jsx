@@ -8,6 +8,17 @@ import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
+    const isGuest = user?.role === 'guest';
+    const primaryLinks = isGuest
+        ? [
+            { href: route('debug.tourism'), label: '周辺案内', active: route().current('debug.tourism') },
+            { href: route('debug.contact'), label: 'Stray Signal', active: route().current('debug.contact') },
+        ]
+        : [
+            { href: route('tasks.index'), label: 'タスク', active: route().current('tasks.*') },
+            { href: route('debug.logs'), label: 'ログ', active: route().current('debug.logs') },
+            { href: route('debug.database'), label: 'DB', active: route().current('debug.database') },
+        ];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -25,24 +36,15 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('tasks.index')}
-                                    active={route().current('tasks.*')}
-                                >
-                                    タスク
-                                </NavLink>
-                                <NavLink
-                                    href={route('debug.logs')}
-                                    active={route().current('debug.logs')}
-                                >
-                                    ログ
-                                </NavLink>
-                                <NavLink
-                                    href={route('debug.database')}
-                                    active={route().current('debug.database')}
-                                >
-                                    DB
-                                </NavLink>
+                                {primaryLinks.map((link) => (
+                                    <NavLink
+                                        key={link.href}
+                                        href={link.href}
+                                        active={link.active}
+                                    >
+                                        {link.label}
+                                    </NavLink>
+                                ))}
                             </div>
                         </div>
 
@@ -145,24 +147,15 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('tasks.index')}
-                            active={route().current('tasks.*')}
-                        >
-                            タスク
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            href={route('debug.logs')}
-                            active={route().current('debug.logs')}
-                        >
-                            ログ
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            href={route('debug.database')}
-                            active={route().current('debug.database')}
-                        >
-                            DB
-                        </ResponsiveNavLink>
+                        {primaryLinks.map((link) => (
+                            <ResponsiveNavLink
+                                key={link.href}
+                                href={link.href}
+                                active={link.active}
+                            >
+                                {link.label}
+                            </ResponsiveNavLink>
+                        ))}
                     </div>
 
                     <div className="border-t border-slate-200 pb-1 pt-4 dark:border-slate-800">

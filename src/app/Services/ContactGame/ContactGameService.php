@@ -5,6 +5,7 @@ namespace App\Services\ContactGame;
 use App\Models\ContactGame;
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
+use App\Services\Llm\OpenRouterClient;
 use App\Support\OperationLogger;
 use RuntimeException;
 use Throwable;
@@ -23,6 +24,7 @@ class ContactGameService
 
     public function __construct(
         private GeminiClient $gemini,
+        private OpenRouterClient $openRouter,
     ) {}
 
     public function start(User $user, string $sentence): ContactGame
@@ -39,10 +41,9 @@ class ContactGameService
         ]);
 
         try {
-            $result = $this->gemini->generateStructured(
-                model: (string) config('gemini.models.flash'),
-                prompt: $this->buildStartPrompt($sentence),
-                responseSchema: $this->startSchema(),
+            $result = $this->generate(
+                $this->buildStartPrompt($sentence),
+                $this->startSchema(),
             );
 
             $resource = $this->startingResource($result['resource_remaining'] ?? null);
@@ -107,10 +108,9 @@ class ContactGameService
         ]);
 
         try {
-            $result = $this->gemini->generateStructured(
-                model: (string) config('gemini.models.flash'),
-                prompt: $this->buildTurnPrompt($game, $message),
-                responseSchema: $this->turnSchema(),
+            $result = $this->generate(
+                $this->buildTurnPrompt($game, $message),
+                $this->turnSchema(),
             );
 
             $this->applyTurn($game, $message, $result);
@@ -131,6 +131,23 @@ class ContactGameService
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $responseSchema
+     * @return array<string, mixed>
+     */
+    private function generate(string $prompt, array $responseSchema): array
+    {
+        if (config('openrouter.contact_provider') === 'openrouter') {
+            return $this->openRouter->generateStructured($prompt, $responseSchema);
+        }
+
+        return $this->gemini->generateStructured(
+            model: (string) config('gemini.models.flash'),
+            prompt: $prompt,
+            responseSchema: $responseSchema,
+        );
     }
 
     /**

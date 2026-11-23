@@ -2,7 +2,7 @@ import AppSectionTabs from '@/Components/AppSectionTabs';
 import TourismGuideHero from '@/Components/TourismTest/TourismGuideHero';
 import TourismMap from '@/Components/TourismTest/TourismMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 function SearchHistoryItem({ search }) {
@@ -116,6 +116,8 @@ export default function Tourism({
         return () => window.clearTimeout(timer);
     }, [latestResult]);
 
+    const isGuest = usePage().props.auth?.user?.role === 'guest';
+
     return (
         <AuthenticatedLayout>
             <Head title="周辺案内">
@@ -131,9 +133,11 @@ export default function Tourism({
                         <summary className="cursor-pointer list-none px-4 py-3 text-xs tracking-[0.2em] text-[#8b7355] marker:content-none [&::-webkit-details-marker]:hidden">
                             <span className="inline-flex items-center gap-2">
                                 <span className="rounded-full border border-[#d9cdb8] px-2 py-0.5">
-                                    開発メニュー
+                                    {isGuest ? 'メニュー' : '開発メニュー'}
                                 </span>
-                                <span className="opacity-70">ToDo / ログ / DB / 周辺案内 / Stray Signal</span>
+                                <span className="opacity-70">
+                                    {isGuest ? '周辺案内 / Stray Signal' : 'ToDo / ログ / DB / 周辺案内 / Stray Signal'}
+                                </span>
                             </span>
                         </summary>
                         <div className="border-t border-[#e7dcc8] p-3">
@@ -187,6 +191,7 @@ export default function Tourism({
                         </section>
                     )}
 
+                    {!isGuest && (
                     <details className="group mt-12 rounded-2xl border border-[#d9cdb8]/70 bg-[#fffdf8]/50">
                         <summary className="cursor-pointer list-none px-5 py-4 text-sm text-[#8b7355] marker:content-none [&::-webkit-details-marker]:hidden">
                             管理用：検索履歴（直近 10 件）
@@ -210,6 +215,7 @@ export default function Tourism({
                             </ul>
                         </div>
                     </details>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

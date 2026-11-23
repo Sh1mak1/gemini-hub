@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TourismTestController;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,40 +19,47 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
+Route::get('/dashboard', function (Request $request) {
+    if ($request->user()?->isGuest()) {
+        return redirect()->route('debug.contact');
+    }
+
     return redirect()->route('tasks.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-    Route::get('/tasks/{source}/{id}', [TaskController::class, 'show'])
-        ->whereIn('source', ['ai', 'fallback'])
-        ->whereNumber('id')
-        ->name('tasks.show');
-    Route::patch('/tasks/{source}/{id}', [TaskController::class, 'update'])
-        ->whereIn('source', ['ai', 'fallback'])
-        ->whereNumber('id')
-        ->name('tasks.update');
-    Route::patch('/tasks/{source}/{id}/complete', [TaskController::class, 'complete'])
-        ->whereIn('source', ['ai', 'fallback'])
-        ->whereNumber('id')
-        ->name('tasks.complete');
+    Route::middleware('owner')->group(function () {
+        Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+        Route::get('/tasks/{source}/{id}', [TaskController::class, 'show'])
+            ->whereIn('source', ['ai', 'fallback'])
+            ->whereNumber('id')
+            ->name('tasks.show');
+        Route::patch('/tasks/{source}/{id}', [TaskController::class, 'update'])
+            ->whereIn('source', ['ai', 'fallback'])
+            ->whereNumber('id')
+            ->name('tasks.update');
+        Route::patch('/tasks/{source}/{id}/complete', [TaskController::class, 'complete'])
+            ->whereIn('source', ['ai', 'fallback'])
+            ->whereNumber('id')
+            ->name('tasks.complete');
 
-    Route::get('/debug/logs', [DebugController::class, 'logs'])->name('debug.logs');
-    Route::get('/debug/logs/entries', [DebugController::class, 'logEntries'])->name('debug.logs.entries');
-    Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
+        Route::get('/debug/logs', [DebugController::class, 'logs'])->name('debug.logs');
+        Route::get('/debug/logs/entries', [DebugController::class, 'logEntries'])->name('debug.logs.entries');
+        Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
+        Route::get('/debug/contact/{contactGame}/debug', [ContactGameController::class, 'debug'])->name('debug.contact.debug');
+        Route::patch('/debug/contact/{contactGame}/resource', [ContactGameController::class, 'updateResource'])->name('debug.contact.resource');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+
     Route::get('/debug/tourism', [TourismTestController::class, 'index'])->name('debug.tourism');
     Route::post('/debug/tourism', [TourismTestController::class, 'search'])->name('debug.tourism.search');
     Route::get('/debug/contact', [ContactGameController::class, 'index'])->name('debug.contact');
     Route::post('/debug/contact', [ContactGameController::class, 'start'])->name('debug.contact.start');
     Route::post('/debug/contact/{contactGame}/messages', [ContactGameController::class, 'message'])->name('debug.contact.message');
-    Route::get('/debug/contact/{contactGame}/debug', [ContactGameController::class, 'debug'])->name('debug.contact.debug');
-    Route::patch('/debug/contact/{contactGame}/resource', [ContactGameController::class, 'updateResource'])->name('debug.contact.resource');
     Route::delete('/debug/contact/{contactGame}', [ContactGameController::class, 'destroy'])->name('debug.contact.reset');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

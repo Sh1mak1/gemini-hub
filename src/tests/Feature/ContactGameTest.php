@@ -7,6 +7,8 @@ use App\Models\ContactGame;
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
 
@@ -394,6 +396,55 @@ class ContactGameTest extends TestCase
                 ->where('game.situation', '異星の昼だった。')
                 ->missing('game.hidden_state')
             );
+    }
+
+    public function test_openrouter_can_answer_a_turn_without_calling_gemini(): void
+    {
+        Config::set('openrouter.contact_provider', 'openrouter');
+        Config::set('openrouter.api_key', 'test-key');
+        Config::set('openrouter.model', 'google/gemini-2.5-flash-lite');
+        Config::set('openrouter.retry_delay_ms', 0);
+
+        $user = User::factory()->create();
+        $game = $this->ongoingGame($user, resourceRemaining: 8, progress: 0);
+
+        Http::fake([
+            'openrouter.ai/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode([
+                            'reply' => '影に入った。風はまだ冷たい。',
+                            'resource_remaining' => 6,
+                            'change_note' => '岩陰へ身を移した。',
+                            'status' => 'ongoing',
+                            'loss_reason' => '',
+                            'ending' => '',
+                            'hidden_progress' => 20,
+                            'hidden_misconception' => '',
+                            'hidden_intervention_1' => '影を伝う',
+                            'hidden_intervention_2' => '',
+                            'hidden_intervention_3' => '',
+                            'hidden_doom' => '日が昇りきると動けなくなる。',
+                        ], JSON_UNESCAPED_UNICODE),
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('debug.contact.message', $game), [
+                'message' => '岩の影に入ってくれ。',
+            ])
+            ->assertOk()
+            ->assertJsonPath('game.messages.2.text', '影に入った。風はまだ冷たい。')
+            ->assertJsonPath('game.resource_remaining', 6);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'openrouter.ai/api/v1/chat/completions')
+                && $request['model'] === 'google/gemini-2.5-flash-lite'
+                && ($request['reasoning']['enabled'] ?? null) === false;
+        });
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'generativelanguage.googleapis.com'));
     }
 
     /**
