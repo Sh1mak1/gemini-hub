@@ -28,6 +28,7 @@ export default function Contact({ game: initialGame }) {
     const [resourceDraft, setResourceDraft] = useState(initialGame?.resource_remaining ?? 0);
     const [sendFailure, setSendFailure] = useState(null);
     const [composing, setComposing] = useState(!initialGame);
+    const [hubOpen, setHubOpen] = useState(false);
     const debugEnabledRef = useRef(false);
 
     useEffect(() => {
@@ -233,6 +234,47 @@ export default function Contact({ game: initialGame }) {
         }
     };
 
+    const resetSignal = async () => {
+        if (!game || processing) {
+            return;
+        }
+
+        if (!window.confirm('この信号を消して、最初の画面に戻ります。')) {
+            return;
+        }
+
+        setProcessing('reset');
+        setError(null);
+
+        try {
+            const response = await fetch(route('debug.contact.reset', game.id), {
+                method: 'DELETE',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                setError('この信号を消せませんでした。');
+
+                return;
+            }
+
+            setGame(null);
+            setDebugState(null);
+            setMessage('');
+            setSendFailure(null);
+            setComposing(true);
+        } catch {
+            setError('この信号を消せませんでした。');
+        } finally {
+            setProcessing(null);
+        }
+    };
+
     const remainingRatio = game?.resource_max
         ? Math.max(0, Math.min(1, game.resource_remaining / game.resource_max))
         : 0;
@@ -242,10 +284,18 @@ export default function Contact({ game: initialGame }) {
             <Head title="Stray Signal" />
 
             <div className="min-h-[calc(100vh-4rem)] bg-[#14120e] text-[#f4efe4]">
-                <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-                    <AppSectionTabs activeTab="contact" />
+                <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+                    {hubOpen && <AppSectionTabs activeTab="contact" />}
 
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setHubOpen((open) => !open)}
+                            aria-expanded={hubOpen}
+                            className="text-xs tracking-[0.18em] text-[#b7ab96]"
+                        >
+                            {hubOpen ? 'メニューを閉じる' : 'メニュー'}
+                        </button>
                         <button
                             type="button"
                             onClick={toggleDebug}
@@ -432,58 +482,72 @@ export default function Contact({ game: initialGame }) {
                                 </div>
                             )}
 
-                            <ol className="space-y-3">
-                                {game.messages.map((entry, index) => (
-                                    <li
-                                        key={`${entry.role}-${index}`}
-                                        className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-7 ${
-                                            entry.role === 'player'
-                                                ? 'ml-auto bg-[#3a2e1c] text-[#f7f1e6]'
-                                                : 'bg-[#14120e] text-[#f4efe4]'
-                                        }`}
-                                    >
-                                        <p className="mb-1 text-[11px] font-semibold tracking-wide text-[#e0b15a]">
-                                            {entry.role === 'player' ? 'あなた' : senderLabel(game)}
-                                        </p>
-                                        <p className="whitespace-pre-wrap">{entry.text}</p>
-                                    </li>
-                                ))}
+                            <ol className="space-y-5 border-l border-[#3a3328] pl-4">
+                                {game.messages.map((entry, index) => {
+                                    const fromPlayer = entry.role === 'player';
+
+                                    return (
+                                        <li key={`${entry.role}-${index}`} className={fromPlayer ? 'pl-8' : ''}>
+                                            <p className={`text-[11px] tracking-[0.16em] ${fromPlayer ? 'text-right text-[#8fbf9f]' : 'text-[#e0b15a]'}`}>
+                                                {fromPlayer ? 'あなた' : senderLabel(game)}
+                                            </p>
+                                            <p className={`mt-1 whitespace-pre-wrap text-sm leading-7 ${
+                                                fromPlayer
+                                                    ? 'ml-auto max-w-[85%] border-l border-[#8fbf9f] pl-3 text-right text-[#d7f5e4]'
+                                                    : 'text-[#f4efe4]'
+                                            }`}
+                                            >
+                                                {entry.text}
+                                            </p>
+                                        </li>
+                                    );
+                                })}
                             </ol>
 
                             {game.status === 'ongoing' && (
-                                <form onSubmit={send} className="space-y-3">
-                                    <label className="block text-sm text-[#d9d0c0]">
+                                <form onSubmit={send} className="flex items-end gap-3 border-t border-[#3a3328] pt-4">
+                                    <label className="block min-w-0 flex-1 text-sm text-[#d9d0c0]">
                                         見知らぬ相手へ返す
                                         <textarea
                                             value={message}
                                             onChange={(event) => setMessage(event.target.value)}
-                                            rows={3}
+                                            rows={2}
                                             maxLength={1000}
                                             required
                                             disabled={processing}
-                                            className="mt-2 w-full rounded-2xl border border-[#3a3328] bg-[#14120e] px-4 py-3 text-sm leading-7 text-[#f4efe4] focus:border-[#e0b15a] focus:ring-[#e0b15a]"
+                                            className="mt-2 w-full resize-none border-0 border-b border-[#3a3328] bg-transparent px-0 py-2 text-sm leading-7 text-[#f4efe4] focus:border-[#e0b15a] focus:ring-0"
                                         />
                                     </label>
                                     <button
                                         type="submit"
                                         disabled={processing || message.trim() === ''}
-                                        className="rounded-full bg-[#e0b15a] px-5 py-2.5 text-sm font-semibold text-[#241c10] disabled:opacity-40"
+                                        className="mb-1 shrink-0 rounded-full bg-[#e0b15a] px-4 py-2 text-sm font-semibold text-[#241c10] disabled:opacity-40"
                                     >
-                                        {processing === 'send' ? '返しています…' : '返す'}
+                                        {processing === 'send' ? '送信中' : '返す'}
                                     </button>
                                 </form>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setError(null);
-                                    setComposing(true);
-                                }}
-                                className="text-sm text-[#b7ab96] underline decoration-[#3a3328] underline-offset-4"
-                            >
-                                別の一文を置く
-                            </button>
+                            <div className="flex flex-wrap gap-x-5 gap-y-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setError(null);
+                                        setComposing(true);
+                                    }}
+                                    className="text-sm text-[#b7ab96] underline decoration-[#3a3328] underline-offset-4"
+                                >
+                                    別の一文を置く
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetSignal}
+                                    disabled={processing === 'reset'}
+                                    className="text-sm text-[#f0c7bc] underline decoration-[#8a4a3d] underline-offset-4 disabled:opacity-40"
+                                >
+                                    {processing === 'reset' ? '消しています…' : 'この信号を消す'}
+                                </button>
+                            </div>
                         </section>
                     )}
                 </div>

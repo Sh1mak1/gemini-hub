@@ -86,6 +86,18 @@ class ContactGameController extends Controller
         return response()->json($this->payload($game, null, $request));
     }
 
+    public function destroy(Request $request, ContactGame $contactGame): JsonResponse
+    {
+        $game = $this->ownGame($request, $contactGame);
+        $game->delete();
+
+        return response()->json([
+            'game' => null,
+            'error' => null,
+            'retryable' => false,
+        ]);
+    }
+
     private function ownGame(Request $request, ContactGame $game): ContactGame
     {
         if ($game->user_id !== $request->user()->id) {
