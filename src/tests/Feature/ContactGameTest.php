@@ -227,6 +227,35 @@ class ContactGameTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_owner_can_reset_the_current_signal(): void
+    {
+        $owner = User::factory()->create();
+        $intruder = User::factory()->create();
+        $older = $this->ongoingGame($owner, resourceRemaining: 4, progress: 0);
+        $game = $this->ongoingGame($owner, resourceRemaining: 6, progress: 10);
+
+        $this->actingAs($intruder)
+            ->deleteJson(route('debug.contact.reset', $game))
+            ->assertNotFound();
+        $this->assertNotNull($game->fresh());
+
+        $this->actingAs($owner)
+            ->deleteJson(route('debug.contact.reset', $game))
+            ->assertOk()
+            ->assertJsonPath('game', null);
+
+        $this->assertNull($game->fresh());
+        $this->assertNotNull($older->fresh());
+
+        $this->actingAs($owner)
+            ->get(route('debug.contact'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Debug/Contact')
+                ->where('game.id', $older->id)
+            );
+    }
+
     public function test_debug_endpoint_shows_progress_only_to_the_owner(): void
     {
         $owner = User::factory()->create();
