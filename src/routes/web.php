@@ -48,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
         Route::get('/debug/contact/{contactGame}/debug', [ContactGameController::class, 'debug'])->name('debug.contact.debug');
         Route::patch('/debug/contact/{contactGame}/resource', [ContactGameController::class, 'updateResource'])->name('debug.contact.resource');
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
@@ -58,8 +60,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/debug/contact/{contactGame}/messages', [ContactGameController::class, 'message'])->name('debug.contact.message');
     Route::delete('/debug/contact/{contactGame}', [ContactGameController::class, 'destroy'])->name('debug.contact.reset');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 require __DIR__.'/auth.php';
