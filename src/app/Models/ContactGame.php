@@ -13,6 +13,7 @@ class ContactGame extends Model
         'sentence',
         'situation',
         'character_name',
+        'character_role',
         'channel',
         'clear_condition',
         'resource_name',
@@ -21,6 +22,7 @@ class ContactGame extends Model
         'resource_rule',
         'last_change_note',
         'loss_reason',
+        'ending',
         'hidden_state',
         'messages',
     ];
@@ -51,6 +53,7 @@ class ContactGame extends Model
             'sentence' => $this->sentence,
             'situation' => $this->situation,
             'character_name' => $this->character_name,
+            'character_role' => $this->character_role,
             'channel' => $this->channel,
             'clear_condition' => $this->clear_condition,
             'resource_name' => $this->resource_name,
@@ -59,6 +62,7 @@ class ContactGame extends Model
             'resource_rule' => $this->resource_rule,
             'last_change_note' => $this->last_change_note,
             'loss_reason' => $this->loss_reason,
+            'ending' => $this->ending,
             'messages' => array_values($this->messages ?? []),
         ];
     }

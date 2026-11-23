@@ -13,6 +13,10 @@ const STATUS_LABEL = {
     lost: '信号が途切れた',
 };
 
+function senderLabel(game) {
+    return game.character_role || game.character_name;
+}
+
 export default function Contact({ game: initialGame }) {
     const [game, setGame] = useState(initialGame);
     const [sentence, setSentence] = useState('');
@@ -22,6 +26,7 @@ export default function Contact({ game: initialGame }) {
     const [debugEnabled, setDebugEnabled] = useState(false);
     const [debugState, setDebugState] = useState(null);
     const [resourceDraft, setResourceDraft] = useState(initialGame?.resource_remaining ?? 0);
+    const [sendFailure, setSendFailure] = useState(null);
     const debugEnabledRef = useRef(false);
 
     useEffect(() => {
@@ -108,36 +113,33 @@ export default function Contact({ game: initialGame }) {
         });
 
         const payload = await response.json().catch(() => ({}));
+        const errorMessage = payload.error
+            ?? payload.errors?.sentence?.[0]
+            ?? payload.errors?.message?.[0]
+            ?? payload.errors?.resource_remaining?.[0]
+            ?? '処理に失敗しました。';
 
-        if (response.status === 422) {
-            setError(
-                payload.error
-                    ?? payload.errors?.sentence?.[0]
-                    ?? payload.errors?.message?.[0]
-                    ?? '入力内容を確認してください。',
-            );
-
-            if (payload.game) {
-                setGame(payload.game);
-            }
-
-            return false;
+        if (payload.game) {
+            setGame(payload.game);
         }
-
-        if (!response.ok) {
-            setError('処理に失敗しました。');
-
-            return false;
-        }
-
-        setGame(payload.game ?? null);
-        setError(payload.error);
 
         if (payload.debug) {
             setDebugState(payload.debug);
         }
 
-        return payload.error == null;
+        if (response.status === 422 || !response.ok) {
+            return {
+                ok: false,
+                retryable: payload.retryable === true || (!response.ok && response.status !== 422),
+                error: errorMessage,
+            };
+        }
+
+        if (payload.error) {
+            return { ok: false, retryable: false, error: payload.error };
+        }
+
+        return { ok: true, retryable: false, error: null };
     };
 
     const start = async (event) => {
@@ -148,9 +150,12 @@ export default function Contact({ game: initialGame }) {
         try {
             const started = await postJson(route('debug.contact.start'), { sentence });
 
-            if (started) {
+            if (started.ok) {
                 setSentence('');
                 setMessage('');
+                setSendFailure(null);
+            } else {
+                setError(started.error);
             }
         } catch {
             setError('処理に失敗しました。');
@@ -159,22 +164,49 @@ export default function Contact({ game: initialGame }) {
         }
     };
 
-    const send = async (event) => {
-        event.preventDefault();
+    const submitMessage = async (text) => {
         setProcessing('send');
         setError(null);
 
         try {
-            const sent = await postJson(route('debug.contact.message', game.id), { message });
+            const updated = await postJson(route('debug.contact.message', game.id), { message: text });
 
-            if (sent) {
+            if (updated.ok) {
                 setMessage('');
+                setSendFailure(null);
+
+                return;
             }
+
+            if (updated.retryable) {
+                setSendFailure({ message: updated.error, text });
+
+                return;
+            }
+
+            setSendFailure(null);
+            setError(updated.error);
         } catch {
-            setError('処理に失敗しました。');
+            setSendFailure({
+                message: 'Gemini との通信に失敗しました。しばらくしてからもう一度送ってください。',
+                text,
+            });
         } finally {
             setProcessing(null);
         }
+    };
+
+    const send = (event) => {
+        event.preventDefault();
+        submitMessage(message);
+    };
+
+    const retrySend = () => {
+        if (!sendFailure) {
+            return;
+        }
+
+        submitMessage(sendFailure.text);
     };
 
     const applyResource = async (event) => {
@@ -183,11 +215,15 @@ export default function Contact({ game: initialGame }) {
         setError(null);
 
         try {
-            await postJson(
+            const updated = await postJson(
                 route('debug.contact.resource', game.id),
                 { resource_remaining: Number(resourceDraft) },
                 'PATCH',
             );
+
+            if (!updated.ok) {
+                setError(updated.error);
+            }
         } catch {
             setError('処理に失敗しました。');
         } finally {
@@ -248,7 +284,7 @@ export default function Contact({ game: initialGame }) {
                                         見知らぬ送信者
                                     </p>
                                     <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                        {game.character_name}
+                                        {senderLabel(game)}
                                     </h3>
                                 </div>
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -354,9 +390,16 @@ export default function Contact({ game: initialGame }) {
                             )}
 
                             {game.status === 'cleared' && (
-                                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                                    向こうで、目処が立った。信号はもう急がなくていい。
-                                </p>
+                                <div
+                                    role="status"
+                                    className="space-y-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
+                                >
+                                    <p className="text-lg font-semibold">クリア</p>
+                                    <p>おめでとう。向こうで、目処が立った。</p>
+                                    {game.ending && (
+                                        <p className="whitespace-pre-wrap leading-6">{game.ending}</p>
+                                    )}
+                                </div>
                             )}
 
                             <ol className="space-y-3">
@@ -370,7 +413,7 @@ export default function Contact({ game: initialGame }) {
                                         }`}
                                     >
                                         <p className="mb-1 text-xs font-semibold opacity-70">
-                                            {entry.role === 'player' ? 'あなた（受信した本人）' : `${game.character_name}（見知らぬ相手）`}
+                                            {entry.role === 'player' ? 'あなた（受信した本人）' : `${senderLabel(game)}（見知らぬ相手）`}
                                         </p>
                                         <p className="whitespace-pre-wrap">{entry.text}</p>
                                     </li>
@@ -435,6 +478,41 @@ export default function Contact({ game: initialGame }) {
                     </form>
                 </div>
             </div>
+            {sendFailure && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="send-failure-title"
+                        className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 text-slate-900 shadow-xl dark:bg-slate-900 dark:text-slate-100"
+                    >
+                        <div>
+                            <h3 id="send-failure-title" className="text-lg font-semibold">
+                                送信できませんでした
+                            </h3>
+                            <p className="mt-2 text-sm leading-6">{sendFailure.message}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={retrySend}
+                                disabled={processing === 'send'}
+                                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            >
+                                {processing === 'send' ? '返しています…' : 'もう一度送る'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSendFailure(null)}
+                                disabled={processing === 'send'}
+                                className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-100"
+                            >
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

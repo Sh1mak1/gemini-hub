@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\GeminiApiException;
 use App\Models\ContactGame;
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
@@ -58,7 +59,8 @@ class ContactGameTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('game.status', 'ongoing')
-            ->assertJsonPath('game.character_name', 'レナ')
+            ->assertJsonPath('game.character_role', '漂流した宇宙飛行士')
+            ->assertJsonPath('game.character_name', '漂流した宇宙飛行士')
             ->assertJsonPath('game.resource_remaining', 8)
             ->assertJsonPath('game.messages.0.role', 'character')
             ->assertJsonPath('error', null);
@@ -118,6 +120,7 @@ class ContactGameTest extends TestCase
             'change_note' => '帰還手順が揃った。',
             'status' => 'cleared',
             'loss_reason' => '',
+            'ending' => '航路が決まり、宇宙飛行士は母船の灯に向かって歩き出した。',
             'hidden_progress' => 100,
             'hidden_misconception' => '',
             'hidden_intervention_1' => '',
@@ -133,7 +136,8 @@ class ContactGameTest extends TestCase
             ->assertOk()
             ->assertJsonPath('game.status', 'cleared')
             ->assertJsonPath('game.resource_remaining', 0)
-            ->assertJsonPath('game.loss_reason', null);
+            ->assertJsonPath('game.loss_reason', null)
+            ->assertJsonPath('game.ending', '航路が決まり、宇宙飛行士は母船の灯に向かって歩き出した。');
 
         $this->assertSame(100, $game->fresh()->hidden_state['progress']);
     }
@@ -324,6 +328,29 @@ class ContactGameTest extends TestCase
             ->assertJsonPath('debug.progress', 45);
     }
 
+    public function test_gemini_failure_while_sending_is_retryable_and_keeps_the_game(): void
+    {
+        $user = User::factory()->create();
+        $game = $this->ongoingGame($user, resourceRemaining: 5, progress: 10);
+
+        $gemini = Mockery::mock(GeminiClient::class);
+        $gemini->shouldReceive('generateStructured')
+            ->once()
+            ->andThrow(new GeminiApiException('Gemini API request failed.', 503, true));
+        $this->app->instance(GeminiClient::class, $gemini);
+
+        $this->actingAs($user)
+            ->postJson(route('debug.contact.message', $game), [
+                'message' => '試してくれ。',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('retryable', true)
+            ->assertJsonPath('game.resource_remaining', 5)
+            ->assertJsonPath('game.messages.0.text', 'こちらレナ。');
+
+        $this->assertCount(1, $game->fresh()->messages);
+    }
+
     public function test_page_reloads_the_latest_game_without_hidden_state(): void
     {
         $user = User::factory()->create();
@@ -360,7 +387,7 @@ class ContactGameTest extends TestCase
     {
         return [
             'situation' => 'レナは異星の砂の上で目を覚ました。母船は地平線の向こうで応答しない。',
-            'character_name' => 'レナ',
+            'character_role' => '漂流した宇宙飛行士',
             'channel' => 'ヘルメットの非常通信が、あなたの受信機にだけ届いている。',
             'clear_condition' => '母船へ戻る航路と、そこまで生きて歩く手順が確定する。',
             'resource_name' => '酸素',
