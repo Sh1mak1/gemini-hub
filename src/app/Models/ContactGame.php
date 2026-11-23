@@ -62,4 +62,45 @@ class ContactGame extends Model
             'messages' => array_values($this->messages ?? []),
         ];
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDebugArray(): array
+    {
+        $hidden = $this->hidden_state ?? [];
+        $interventions = $hidden['useful_interventions'] ?? [];
+
+        if (! is_array($interventions)) {
+            $interventions = [];
+        }
+
+        return [
+            'progress' => (int) ($hidden['progress'] ?? 0),
+            'misconception' => is_string($hidden['misconception'] ?? null) ? $hidden['misconception'] : '',
+            'useful_interventions' => array_values(array_filter(
+                $interventions,
+                fn ($item) => is_string($item) && $item !== '',
+            )),
+            'doom_if_ignored' => is_string($hidden['doom_if_ignored'] ?? null) ? $hidden['doom_if_ignored'] : '',
+        ];
+    }
+
+    public function setDebugResource(int $remaining): void
+    {
+        $remaining = max(0, min(99, $remaining));
+
+        $this->resource_remaining = $remaining;
+
+        if ($remaining > $this->resource_max) {
+            $this->resource_max = $remaining;
+        }
+
+        if ($this->status === 'lost' && $remaining > 0) {
+            $this->status = 'ongoing';
+            $this->loss_reason = null;
+        }
+
+        $this->save();
+    }
 }

@@ -1,7 +1,7 @@
 import AppSectionTabs from '@/Components/AppSectionTabs';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -19,16 +19,90 @@ export default function Contact({ game: initialGame }) {
     const [message, setMessage] = useState('');
     const [processing, setProcessing] = useState(null);
     const [error, setError] = useState(null);
+    const [debugEnabled, setDebugEnabled] = useState(false);
+    const [debugState, setDebugState] = useState(null);
+    const [resourceDraft, setResourceDraft] = useState(initialGame?.resource_remaining ?? 0);
+    const debugEnabledRef = useRef(false);
 
-    const postJson = async (url, body) => {
-        const response = await fetch(url, {
-            method: 'POST',
+    useEffect(() => {
+        try {
+            const enabled = window.localStorage.getItem('contact-debug-mode') === '1';
+            debugEnabledRef.current = enabled;
+            setDebugEnabled(enabled);
+        } catch {
+            debugEnabledRef.current = false;
+        }
+    }, []);
+
+    useEffect(() => {
+        setResourceDraft(game?.resource_remaining ?? 0);
+    }, [game?.id, game?.resource_remaining]);
+
+    useEffect(() => {
+        if (!debugEnabled || !game?.id) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        fetch(route('debug.contact.debug', game.id), {
             headers: {
-                'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
+            credentials: 'same-origin',
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                if (!cancelled) {
+                    setDebugState(payload.debug ?? null);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setError('デバッグ情報を読めませんでした。');
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [debugEnabled, game?.id]);
+
+    const toggleDebug = () => {
+        setDebugEnabled((current) => {
+            const next = !current;
+            debugEnabledRef.current = next;
+
+            try {
+                window.localStorage.setItem('contact-debug-mode', next ? '1' : '0');
+            } catch {
+                // The toggle still works for this visit.
+            }
+
+            if (!next) {
+                setDebugState(null);
+            }
+
+            return next;
+        });
+    };
+
+    const postJson = async (url, body, method = 'POST') => {
+        const headers = {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+
+        if (debugEnabledRef.current) {
+            headers['X-Contact-Debug'] = '1';
+        }
+
+        const response = await fetch(url, {
+            method,
+            headers,
             credentials: 'same-origin',
             body: JSON.stringify(body),
         });
@@ -58,6 +132,10 @@ export default function Contact({ game: initialGame }) {
 
         setGame(payload.game ?? null);
         setError(payload.error);
+
+        if (payload.debug) {
+            setDebugState(payload.debug);
+        }
 
         return payload.error == null;
     };
@@ -99,6 +177,24 @@ export default function Contact({ game: initialGame }) {
         }
     };
 
+    const applyResource = async (event) => {
+        event.preventDefault();
+        setProcessing('resource');
+        setError(null);
+
+        try {
+            await postJson(
+                route('debug.contact.resource', game.id),
+                { resource_remaining: Number(resourceDraft) },
+                'PATCH',
+            );
+        } catch {
+            setError('処理に失敗しました。');
+        } finally {
+            setProcessing(null);
+        }
+    };
+
     const remainingRatio = game?.resource_max
         ? Math.max(0, Math.min(1, game.resource_remaining / game.resource_max))
         : 0;
@@ -120,9 +216,23 @@ export default function Contact({ game: initialGame }) {
                 <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <AppSectionTabs activeTab="contact" />
 
-                    <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        あなたは、どの物語の登場人物でもない。一文を置くと、その場にいる見知らぬ誰かから連絡が届く。なぜ届くのかはわからない。返せるのは文章だけ。
-                    </p>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <p className="max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            あなたは、どの物語の登場人物でもない。一文を置くと、その場にいる見知らぬ誰かから連絡が届く。なぜ届くのかはわからない。返せるのは文章だけ。
+                        </p>
+                        <button
+                            type="button"
+                            onClick={toggleDebug}
+                            aria-pressed={debugEnabled}
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                                debugEnabled
+                                    ? 'bg-amber-500 text-amber-950'
+                                    : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                            }`}
+                        >
+                            デバッグ {debugEnabled ? 'オン' : 'オフ'}
+                        </button>
+                    </div>
 
                     {error && (
                         <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
@@ -145,6 +255,61 @@ export default function Contact({ game: initialGame }) {
                                     {STATUS_LABEL[game.status] ?? game.status}
                                 </span>
                             </div>
+
+                            {debugEnabled && debugState && (
+                                <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                                    <p className="font-semibold">デバッグ</p>
+                                    <div>
+                                        <p>進捗 {debugState.progress} / 100</p>
+                                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900">
+                                            <div
+                                                className="h-full bg-amber-500"
+                                                style={{ width: `${Math.max(0, Math.min(100, debugState.progress))}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">求めている回答</p>
+                                        {debugState.useful_interventions?.length > 0 ? (
+                                            <ul className="mt-1 list-disc pl-5">
+                                                {debugState.useful_interventions.map((item) => (
+                                                    <li key={item}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="mt-1">いまは特定の回答を求めていない。</p>
+                                        )}
+                                    </div>
+                                    {debugState.misconception && (
+                                        <p>誤解: {debugState.misconception}</p>
+                                    )}
+                                    {debugState.doom_if_ignored && (
+                                        <p>尽きたとき: {debugState.doom_if_ignored}</p>
+                                    )}
+                                    <form onSubmit={applyResource} className="flex flex-wrap items-end gap-2">
+                                        <label className="text-xs font-medium">
+                                            残量
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="99"
+                                                value={resourceDraft}
+                                                onChange={(event) => setResourceDraft(event.target.value)}
+                                                disabled={processing}
+                                                className="mt-1 block w-24 rounded-lg border-amber-300 bg-white text-sm text-slate-900 dark:border-amber-700 dark:bg-slate-950 dark:text-slate-100"
+                                            />
+                                        </label>
+                                        <button
+                                            type="submit"
+                                            disabled={processing}
+                                            className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                                        >
+                                            {processing === 'resource' ? '反映しています…' : '残量を反映'}
+                                        </button>
+                                    </form>
+                                    <p className="text-xs">信号が途切れたあとに残量を戻すと、同じ相手の続きから試せます。</p>
+                                </div>
+                            )}
 
                             <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
                                 置いた一文「{game.sentence}」

@@ -308,7 +308,7 @@ class ContactGameService
 - resource_rule は、相手の側で何をするとそれが減るかを一文で書く。連絡を受けている間も減る
 - hidden_progress は 0
 - hidden_misconception は、相手が誤って信じていること
-- hidden_intervention_1 から 3 は、見知らぬ受信者の返事で促せると状況が進む方向。相手が自分では思いつきにくいもの。それぞれ一文
+- hidden_intervention_1 から 3 は、受信者が送ると進捗する回答例。受信者がそのまま送れる短い返事にする。説明ではなく、求めている回答そのもの
 - hidden_doom は、返事が的外れなまま尽きたときに相手の側で起きる不可逆な結末
 - 受信者が現場へ行く解決や、世界そのものを書き換える解決にはしない
 PROMPT;
@@ -354,7 +354,7 @@ PROMPT;
 - lost のとき loss_reason に結末を一文で書く。それ以外の loss_reason は空文字
 - status は ongoing、cleared、lost のいずれか
 - hidden_misconception は、誤解が残っていれば残し、連絡で解けたら空文字
-- 使わなくなった intervention は空文字にしてよい
+- hidden_intervention_1 から 3 は、まだ求めている回答。受信者がそのまま送れる短い返事にする。達成済みや不要になったものは空文字
 - 相手は受信者を同僚、上司、依頼人、家族、救助隊の担当者として扱わない。名前も所属も知らない
 - 受信者が名乗っても、相手はそれを確認できない
 - 一文のジャンルとトーンは相手の側に保つ。受信者をその物語の登場人物にしない
