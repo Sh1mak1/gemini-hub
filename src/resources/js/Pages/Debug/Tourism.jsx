@@ -133,7 +133,7 @@ export default function Tourism({
                                 <span className="rounded-full border border-[#d9cdb8] px-2 py-0.5">
                                     開発メニュー
                                 </span>
-                                <span className="opacity-70">ToDo / ログ / DB / 周辺案内 / 一文連絡</span>
+                                <span className="opacity-70">ToDo / ログ / DB / 周辺案内 / Stray Signal</span>
                             </span>
                         </summary>
                         <div className="border-t border-[#e7dcc8] p-3">

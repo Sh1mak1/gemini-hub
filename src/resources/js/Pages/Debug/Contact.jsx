@@ -27,6 +27,7 @@ export default function Contact({ game: initialGame }) {
     const [debugState, setDebugState] = useState(null);
     const [resourceDraft, setResourceDraft] = useState(initialGame?.resource_remaining ?? 0);
     const [sendFailure, setSendFailure] = useState(null);
+    const [composing, setComposing] = useState(!initialGame);
     const debugEnabledRef = useRef(false);
 
     useEffect(() => {
@@ -154,6 +155,7 @@ export default function Contact({ game: initialGame }) {
                 setSentence('');
                 setMessage('');
                 setSendFailure(null);
+                setComposing(false);
             } else {
                 setError(started.error);
             }
@@ -236,34 +238,22 @@ export default function Contact({ game: initialGame }) {
         : 0;
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div>
-                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">見知らぬ受信</p>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                        一文連絡
-                    </h2>
-                </div>
-            }
-        >
-            <Head title="一文連絡" />
+        <AuthenticatedLayout>
+            <Head title="Stray Signal" />
 
-            <div className="bg-gradient-to-b from-slate-100 via-white to-white py-8 transition-colors dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
-                <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-[calc(100vh-4rem)] bg-[#14120e] text-[#f4efe4]">
+                <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
                     <AppSectionTabs activeTab="contact" />
 
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <p className="max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            あなたは、どの物語の登場人物でもない。一文を置くと、その場にいる見知らぬ誰かから連絡が届く。なぜ届くのかはわからない。返せるのは文章だけ。
-                        </p>
+                    <div className="flex justify-end">
                         <button
                             type="button"
                             onClick={toggleDebug}
                             aria-pressed={debugEnabled}
-                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                            className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
                                 debugEnabled
-                                    ? 'bg-amber-500 text-amber-950'
-                                    : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                                    ? 'bg-[#e0b15a] text-[#241c10]'
+                                    : 'bg-[#2a241c] text-[#b7ab96]'
                             }`}
                         >
                             デバッグ {debugEnabled ? 'オン' : 'オフ'}
@@ -271,35 +261,83 @@ export default function Contact({ game: initialGame }) {
                     </div>
 
                     {error && (
-                        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+                        <p className="rounded-2xl border border-[#8a4a3d] bg-[#2a1814] px-4 py-3 text-sm text-[#f0c7bc]">
                             {error}
                         </p>
                     )}
 
-                    {game && (
-                        <section className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div>
-                                    <p className="text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400">
-                                        見知らぬ送信者
-                                    </p>
-                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                        {senderLabel(game)}
-                                    </h3>
+                    {composing && (
+                        <section className="mx-auto max-w-2xl pb-10 pt-4 sm:pt-10">
+                            <p className="text-[11px] font-semibold tracking-[0.42em] text-[#e0b15a]">
+                                A CONTACT GAME
+                            </p>
+                            <h1 className="mt-4 font-serif text-5xl leading-none text-[#f7f1e6] sm:text-7xl">
+                                Stray Signal
+                            </h1>
+                            <p className="mt-8 max-w-xl text-base leading-8 text-[#d9d0c0]">
+                                あなたは、どの物語の登場人物でもない。一文を置くと、その場にいる見知らぬ誰かから連絡が届く。なぜ届くのかはわからない。返せるのは文章だけ。
+                            </p>
+                            <ul className="mt-8 space-y-3 text-sm leading-7 text-[#b7ab96]">
+                                <li>相手は名前ではなく、飛行機操縦士のような属性で現れる。</li>
+                                <li>「試してくれ」と頼めば、相手はそれをやってから結果を返す。</li>
+                                <li>残っているものが尽きる前に、示されたことを成し遂げる。</li>
+                            </ul>
+                            <form onSubmit={start} className="mt-10 space-y-4">
+                                <label className="block text-sm text-[#d9d0c0]">
+                                    置く一文
+                                    <textarea
+                                        value={sentence}
+                                        onChange={(event) => setSentence(event.target.value)}
+                                        rows={4}
+                                        maxLength={500}
+                                        required
+                                        disabled={processing}
+                                        placeholder="漂流した宇宙飛行士が目を覚ますと、ここは異星だった。"
+                                        className="mt-2 w-full rounded-2xl border border-[#3a3328] bg-[#1c1914] px-4 py-3 text-base leading-7 text-[#f4efe4] placeholder:text-[#7d7364] focus:border-[#e0b15a] focus:ring-[#e0b15a]"
+                                    />
+                                </label>
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <button
+                                        type="submit"
+                                        disabled={processing || sentence.trim() === ''}
+                                        className="rounded-full bg-[#e0b15a] px-6 py-3 text-sm font-semibold text-[#241c10] disabled:opacity-40"
+                                    >
+                                        {processing === 'start' ? '信号を待っています…' : '信号を開く'}
+                                    </button>
+                                    {game && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setComposing(false)}
+                                            className="text-sm text-[#b7ab96] underline decoration-[#3a3328] underline-offset-4"
+                                        >
+                                            いまの信号に戻る
+                                        </button>
+                                    )}
                                 </div>
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                            </form>
+                        </section>
+                    )}
+
+                    {!composing && game && (
+                        <section className="space-y-6 rounded-[28px] border border-[#3a3328] bg-[#1c1914] p-4 sm:p-7">
+                            <div className="flex flex-wrap items-end justify-between gap-3">
+                                <div>
+                                    <p className="font-serif text-sm tracking-[0.28em] text-[#e0b15a]">Stray Signal</p>
+                                    <h2 className="mt-2 font-serif text-3xl text-[#f7f1e6]">{senderLabel(game)}</h2>
+                                </div>
+                                <span className="rounded-full border border-[#3a3328] px-3 py-1 text-xs text-[#d9d0c0]">
                                     {STATUS_LABEL[game.status] ?? game.status}
                                 </span>
                             </div>
 
                             {debugEnabled && debugState && (
-                                <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                                <div className="space-y-3 rounded-2xl border border-[#6d5428] bg-[#2a2216] p-3 text-sm text-[#f0e2c4]">
                                     <p className="font-semibold">デバッグ</p>
                                     <div>
                                         <p>進捗 {debugState.progress} / 100</p>
-                                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-amber-200 dark:bg-amber-900">
+                                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#3a3328]">
                                             <div
-                                                className="h-full bg-amber-500"
+                                                className="h-full bg-[#e0b15a]"
                                                 style={{ width: `${Math.max(0, Math.min(100, debugState.progress))}%` }}
                                             />
                                         </div>
@@ -332,72 +370,64 @@ export default function Contact({ game: initialGame }) {
                                                 value={resourceDraft}
                                                 onChange={(event) => setResourceDraft(event.target.value)}
                                                 disabled={processing}
-                                                className="mt-1 block w-24 rounded-lg border-amber-300 bg-white text-sm text-slate-900 dark:border-amber-700 dark:bg-slate-950 dark:text-slate-100"
+                                                className="mt-1 block w-24 rounded-lg border-[#6d5428] bg-[#14120e] text-sm text-[#f4efe4]"
                                             />
                                         </label>
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                                            className="rounded-full bg-[#e0b15a] px-3 py-2 text-xs font-semibold text-[#241c10] disabled:opacity-40"
                                         >
                                             {processing === 'resource' ? '反映しています…' : '残量を反映'}
                                         </button>
                                     </form>
-                                    <p className="text-xs">信号が途切れたあとに残量を戻すと、同じ相手の続きから試せます。</p>
+                                    <p className="text-xs text-[#b7ab96]">信号が途切れたあとに残量を戻すと、同じ相手の続きから試せます。</p>
                                 </div>
                             )}
 
-                            <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                置いた一文「{game.sentence}」
-                            </p>
-                            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-200">
-                                {game.situation}
-                            </p>
+                            <p className="text-sm leading-7 text-[#b7ab96]">置いた一文「{game.sentence}」</p>
+                            <p className="whitespace-pre-wrap text-sm leading-7 text-[#f4efe4]">{game.situation}</p>
 
-                            <dl className="space-y-2 text-sm">
+                            <dl className="space-y-3 text-sm">
                                 <div>
-                                    <dt className="font-medium text-slate-500 dark:text-slate-400">届き方</dt>
-                                    <dd className="text-slate-800 dark:text-slate-100">{game.channel}</dd>
+                                    <dt className="text-xs tracking-wide text-[#e0b15a]">届き方</dt>
+                                    <dd className="mt-1 leading-6 text-[#f4efe4]">{game.channel}</dd>
                                 </div>
                                 <div>
-                                    <dt className="font-medium text-slate-500 dark:text-slate-400">途切れるまでにすること</dt>
-                                    <dd className="text-slate-800 dark:text-slate-100">{game.clear_condition}</dd>
+                                    <dt className="text-xs tracking-wide text-[#e0b15a]">途切れるまでにすること</dt>
+                                    <dd className="mt-1 leading-6 text-[#f4efe4]">{game.clear_condition}</dd>
                                 </div>
                                 <div>
-                                    <dt className="font-medium text-slate-500 dark:text-slate-400">
+                                    <dt className="text-xs tracking-wide text-[#e0b15a]">
                                         {game.resource_name} {game.resource_remaining} / {game.resource_max}
                                     </dt>
-                                    <dd className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                                    <dd className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#3a3328]">
                                         <div
-                                            className="h-full bg-indigo-600"
+                                            className="h-full bg-[#e0b15a]"
                                             style={{ width: `${remainingRatio * 100}%` }}
                                         />
                                     </dd>
-                                    <dd className="mt-1 text-slate-600 dark:text-slate-300">{game.resource_rule}</dd>
+                                    <dd className="mt-2 leading-6 text-[#b7ab96]">{game.resource_rule}</dd>
                                 </div>
                             </dl>
 
                             {game.last_change_note && (
-                                <p className="text-sm text-slate-600 dark:text-slate-300">
-                                    変化: {game.last_change_note}
-                                </p>
+                                <p className="text-sm leading-6 text-[#d9d0c0]">変化: {game.last_change_note}</p>
                             )}
 
                             {game.status === 'lost' && game.loss_reason && (
-                                <p className="text-sm font-medium text-rose-700 dark:text-rose-300">
-                                    {game.loss_reason}
-                                </p>
+                                <p className="text-sm font-medium leading-6 text-[#f0c7bc]">{game.loss_reason}</p>
                             )}
 
                             {game.status === 'cleared' && (
                                 <div
                                     role="status"
-                                    className="space-y-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
+                                    className="space-y-2 rounded-2xl border border-[#3f6b52] bg-[#17261e] p-4 text-[#d7f5e4]"
                                 >
-                                    <p className="text-lg font-semibold">クリア</p>
+                                    <p className="font-serif text-2xl">クリア</p>
                                     <p>おめでとう。向こうで、目処が立った。</p>
                                     {game.ending && (
-                                        <p className="whitespace-pre-wrap leading-6">{game.ending}</p>
+                                        <p className="whitespace-pre-wrap leading-7">{game.ending}</p>
                                     )}
                                 </div>
                             )}
@@ -406,14 +436,14 @@ export default function Contact({ game: initialGame }) {
                                 {game.messages.map((entry, index) => (
                                     <li
                                         key={`${entry.role}-${index}`}
-                                        className={`rounded-xl px-4 py-3 text-sm leading-6 ${
+                                        className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-7 ${
                                             entry.role === 'player'
-                                                ? 'bg-indigo-50 text-indigo-950 dark:bg-indigo-950/40 dark:text-indigo-100'
-                                                : 'bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100'
+                                                ? 'ml-auto bg-[#3a2e1c] text-[#f7f1e6]'
+                                                : 'bg-[#14120e] text-[#f4efe4]'
                                         }`}
                                     >
-                                        <p className="mb-1 text-xs font-semibold opacity-70">
-                                            {entry.role === 'player' ? 'あなた（受信した本人）' : `${senderLabel(game)}（見知らぬ相手）`}
+                                        <p className="mb-1 text-[11px] font-semibold tracking-wide text-[#e0b15a]">
+                                            {entry.role === 'player' ? 'あなた' : senderLabel(game)}
                                         </p>
                                         <p className="whitespace-pre-wrap">{entry.text}</p>
                                     </li>
@@ -422,7 +452,7 @@ export default function Contact({ game: initialGame }) {
 
                             {game.status === 'ongoing' && (
                                 <form onSubmit={send} className="space-y-3">
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    <label className="block text-sm text-[#d9d0c0]">
                                         見知らぬ相手へ返す
                                         <textarea
                                             value={message}
@@ -431,73 +461,53 @@ export default function Contact({ game: initialGame }) {
                                             maxLength={1000}
                                             required
                                             disabled={processing}
-                                            className="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                            className="mt-2 w-full rounded-2xl border border-[#3a3328] bg-[#14120e] px-4 py-3 text-sm leading-7 text-[#f4efe4] focus:border-[#e0b15a] focus:ring-[#e0b15a]"
                                         />
                                     </label>
                                     <button
                                         type="submit"
                                         disabled={processing || message.trim() === ''}
-                                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                        className="rounded-full bg-[#e0b15a] px-5 py-2.5 text-sm font-semibold text-[#241c10] disabled:opacity-40"
                                     >
                                         {processing === 'send' ? '返しています…' : '返す'}
                                     </button>
                                 </form>
                             )}
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setError(null);
+                                    setComposing(true);
+                                }}
+                                className="text-sm text-[#b7ab96] underline decoration-[#3a3328] underline-offset-4"
+                            >
+                                別の一文を置く
+                            </button>
                         </section>
                     )}
-
-                    <form
-                        onSubmit={start}
-                        className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6"
-                    >
-                        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            {game
-                                ? '別の一文を置くと、別の見知らぬ誰かから届く。'
-                                : 'まだ誰からも届いていない。一文を置くと、受信が始まる。'}
-                        </p>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            受信する一文
-                            <textarea
-                                value={sentence}
-                                onChange={(event) => setSentence(event.target.value)}
-                                rows={3}
-                                maxLength={500}
-                                required
-                                disabled={processing}
-                                placeholder="漂流した宇宙飛行士が目を覚ますと、ここは異星だった。"
-                                className="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                            />
-                        </label>
-                        <button
-                            type="submit"
-                            disabled={processing || sentence.trim() === ''}
-                            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
-                        >
-                            {processing === 'start' ? '受信しています…' : '受信する'}
-                        </button>
-                    </form>
                 </div>
             </div>
             {sendFailure && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
                     <div
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="send-failure-title"
-                        className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 text-slate-900 shadow-xl dark:bg-slate-900 dark:text-slate-100"
+                        className="w-full max-w-md space-y-4 rounded-[28px] border border-[#3a3328] bg-[#1c1914] p-6 text-[#f4efe4] shadow-2xl"
                     >
                         <div>
-                            <h3 id="send-failure-title" className="text-lg font-semibold">
+                            <h3 id="send-failure-title" className="font-serif text-2xl">
                                 送信できませんでした
                             </h3>
-                            <p className="mt-2 text-sm leading-6">{sendFailure.message}</p>
+                            <p className="mt-3 text-sm leading-7 text-[#d9d0c0]">{sendFailure.message}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 onClick={retrySend}
                                 disabled={processing === 'send'}
-                                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                className="rounded-full bg-[#e0b15a] px-4 py-2 text-sm font-semibold text-[#241c10] disabled:opacity-40"
                             >
                                 {processing === 'send' ? '返しています…' : 'もう一度送る'}
                             </button>
@@ -505,7 +515,7 @@ export default function Contact({ game: initialGame }) {
                                 type="button"
                                 onClick={() => setSendFailure(null)}
                                 disabled={processing === 'send'}
-                                className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-100"
+                                className="rounded-full border border-[#3a3328] px-4 py-2 text-sm text-[#d9d0c0] disabled:opacity-40"
                             >
                                 閉じる
                             </button>
