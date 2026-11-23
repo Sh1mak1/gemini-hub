@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\GeminiApiException;
+use App\Models\AppSetting;
 use App\Models\ContactGame;
 use App\Services\ContactGame\ContactGameService;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -24,6 +25,7 @@ class ContactGameController extends Controller
 
         return Inertia::render('Debug/Contact', [
             'game' => $game?->toPublicArray(),
+            'llmProvider' => $request->user()->isGuest() ? null : app(ContactGameService::class)->llmProvider(),
         ]);
     }
 
@@ -61,6 +63,29 @@ class ContactGameController extends Controller
         } catch (Throwable $exception) {
             return $this->failure($exception, $game->fresh(), $request);
         }
+    }
+
+    public function updateProvider(Request $request, ContactGameService $service): JsonResponse
+    {
+        $validated = $this->validatedJson($request, [
+            'provider' => ['required', 'in:gemini,openrouter'],
+        ]);
+
+        $apiKey = config('openrouter.api_key');
+
+        if ($validated['provider'] === 'openrouter' && (! is_string($apiKey) || $apiKey === '')) {
+            return response()->json([
+                'provider' => $service->llmProvider(),
+                'error' => 'OpenRouter のキーが設定されていません。',
+            ], 422);
+        }
+
+        AppSetting::putValue(AppSetting::CONTACT_LLM_PROVIDER, $validated['provider']);
+
+        return response()->json([
+            'provider' => $validated['provider'],
+            'error' => null,
+        ]);
     }
 
     public function debug(Request $request, ContactGame $contactGame): JsonResponse

@@ -46,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/debug/logs', [DebugController::class, 'logs'])->name('debug.logs');
         Route::get('/debug/logs/entries', [DebugController::class, 'logEntries'])->name('debug.logs.entries');
         Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
+        Route::patch('/debug/contact/provider', [ContactGameController::class, 'updateProvider'])->name('debug.contact.provider');
         Route::get('/debug/contact/{contactGame}/debug', [ContactGameController::class, 'debug'])->name('debug.contact.debug');
         Route::patch('/debug/contact/{contactGame}/resource', [ContactGameController::class, 'updateResource'])->name('debug.contact.resource');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
