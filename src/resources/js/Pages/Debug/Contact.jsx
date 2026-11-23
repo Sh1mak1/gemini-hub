@@ -8,9 +8,9 @@ function csrfToken() {
 }
 
 const STATUS_LABEL = {
-    ongoing: '連絡中',
-    cleared: 'クリア',
-    lost: 'ゲームオーバー',
+    ongoing: '信号は続いている',
+    cleared: '向こうで目処が立った',
+    lost: '信号が途切れた',
 };
 
 export default function Contact({ game: initialGame }) {
@@ -107,7 +107,7 @@ export default function Contact({ game: initialGame }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">Debug</p>
+                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">見知らぬ受信</p>
                     <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                         一文連絡
                     </h2>
@@ -121,7 +121,7 @@ export default function Contact({ game: initialGame }) {
                     <AppSectionTabs activeTab="contact" />
 
                     <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        一文から、問題を抱えた相手が生まれます。届くのは連絡だけです。尽きるものがゼロになる前に、クリア条件を満たしてください。
+                        あなたは、どの物語の登場人物でもない。一文を置くと、その場にいる見知らぬ誰かから連絡が届く。なぜ届くのかはわからない。返せるのは文章だけ。
                     </p>
 
                     {error && (
@@ -133,25 +133,33 @@ export default function Contact({ game: initialGame }) {
                     {game && (
                         <section className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                    {game.character_name}
-                                </h3>
+                                <div>
+                                    <p className="text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400">
+                                        見知らぬ送信者
+                                    </p>
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                        {game.character_name}
+                                    </h3>
+                                </div>
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                     {STATUS_LABEL[game.status] ?? game.status}
                                 </span>
                             </div>
 
+                            <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                置いた一文「{game.sentence}」
+                            </p>
                             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-200">
                                 {game.situation}
                             </p>
 
                             <dl className="space-y-2 text-sm">
                                 <div>
-                                    <dt className="font-medium text-slate-500 dark:text-slate-400">連絡手段</dt>
+                                    <dt className="font-medium text-slate-500 dark:text-slate-400">届き方</dt>
                                     <dd className="text-slate-800 dark:text-slate-100">{game.channel}</dd>
                                 </div>
                                 <div>
-                                    <dt className="font-medium text-slate-500 dark:text-slate-400">クリア条件</dt>
+                                    <dt className="font-medium text-slate-500 dark:text-slate-400">途切れるまでにすること</dt>
                                     <dd className="text-slate-800 dark:text-slate-100">{game.clear_condition}</dd>
                                 </div>
                                 <div>
@@ -182,7 +190,7 @@ export default function Contact({ game: initialGame }) {
 
                             {game.status === 'cleared' && (
                                 <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                                    クリア条件を満たしました。
+                                    向こうで、目処が立った。信号はもう急がなくていい。
                                 </p>
                             )}
 
@@ -197,7 +205,7 @@ export default function Contact({ game: initialGame }) {
                                         }`}
                                     >
                                         <p className="mb-1 text-xs font-semibold opacity-70">
-                                            {entry.role === 'player' ? 'あなた' : game.character_name}
+                                            {entry.role === 'player' ? 'あなた（受信した本人）' : `${game.character_name}（見知らぬ相手）`}
                                         </p>
                                         <p className="whitespace-pre-wrap">{entry.text}</p>
                                     </li>
@@ -207,7 +215,7 @@ export default function Contact({ game: initialGame }) {
                             {game.status === 'ongoing' && (
                                 <form onSubmit={send} className="space-y-3">
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                                        連絡
+                                        見知らぬ相手へ返す
                                         <textarea
                                             value={message}
                                             onChange={(event) => setMessage(event.target.value)}
@@ -223,7 +231,7 @@ export default function Contact({ game: initialGame }) {
                                         disabled={processing || message.trim() === ''}
                                         className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                                     >
-                                        {processing === 'send' ? '送信しています…' : '送る'}
+                                        {processing === 'send' ? '返しています…' : '返す'}
                                     </button>
                                 </form>
                             )}
@@ -234,8 +242,13 @@ export default function Contact({ game: initialGame }) {
                         onSubmit={start}
                         className="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6"
                     >
+                        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            {game
+                                ? '別の一文を置くと、別の見知らぬ誰かから届く。'
+                                : 'まだ誰からも届いていない。一文を置くと、受信が始まる。'}
+                        </p>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {game ? '別の一文で始める' : '一文'}
+                            受信する一文
                             <textarea
                                 value={sentence}
                                 onChange={(event) => setSentence(event.target.value)}
@@ -252,7 +265,7 @@ export default function Contact({ game: initialGame }) {
                             disabled={processing || sentence.trim() === ''}
                             className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
                         >
-                            {processing === 'start' ? '生成しています…' : '始める'}
+                            {processing === 'start' ? '受信しています…' : '受信する'}
                         </button>
                     </form>
                 </div>
