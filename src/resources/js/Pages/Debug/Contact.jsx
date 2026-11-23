@@ -3,8 +3,24 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
-function csrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+function csrfHeaders() {
+    const headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+    const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    if (meta) {
+        headers['X-CSRF-TOKEN'] = meta;
+        return headers;
+    }
+
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+
+    if (match) {
+        headers['X-XSRF-TOKEN'] = decodeURIComponent(match[1]);
+    }
+
+    return headers;
 }
 
 const STATUS_LABEL = {
@@ -107,8 +123,7 @@ export default function Contact({ game: initialGame, llmProvider: initialProvide
         const headers = {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-            'X-Requested-With': 'XMLHttpRequest',
+            ...csrfHeaders(),
         };
 
         if (debugEnabledRef.current) {
@@ -259,8 +274,7 @@ export default function Contact({ game: initialGame, llmProvider: initialProvide
                 method: 'DELETE',
                 headers: {
                     Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
+                    ...csrfHeaders(),
                 },
                 credentials: 'same-origin',
             });
@@ -297,8 +311,7 @@ export default function Contact({ game: initialGame, llmProvider: initialProvide
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
+                    ...csrfHeaders(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({ provider: nextProvider }),
