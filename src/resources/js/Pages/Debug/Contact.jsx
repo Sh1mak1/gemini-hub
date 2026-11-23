@@ -17,7 +17,7 @@ function senderLabel(game) {
     return game.character_role || game.character_name;
 }
 
-export default function Contact({ game: initialGame }) {
+export default function Contact({ game: initialGame, llmProvider: initialProvider = null }) {
     const canDebug = usePage().props.auth?.user?.role !== 'guest';
     const [game, setGame] = useState(initialGame);
     const [sentence, setSentence] = useState('');
@@ -30,6 +30,7 @@ export default function Contact({ game: initialGame }) {
     const [sendFailure, setSendFailure] = useState(null);
     const [composing, setComposing] = useState(!initialGame);
     const [hubOpen, setHubOpen] = useState(false);
+    const [llmProvider, setLlmProvider] = useState(initialProvider);
     const debugEnabledRef = useRef(false);
 
     useEffect(() => {
@@ -282,6 +283,41 @@ export default function Contact({ game: initialGame }) {
         }
     };
 
+    const switchProvider = async (nextProvider) => {
+        if (!canDebug || nextProvider === llmProvider || processing) {
+            return;
+        }
+
+        setProcessing('provider');
+        setError(null);
+
+        try {
+            const response = await fetch(route('debug.contact.provider'), {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ provider: nextProvider }),
+            });
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                setError(payload.error ?? 'APIを切り替えられませんでした。');
+                return;
+            }
+
+            setLlmProvider(payload.provider ?? nextProvider);
+        } catch {
+            setError('APIを切り替えられませんでした。');
+        } finally {
+            setProcessing(null);
+        }
+    };
+
     const remainingRatio = game?.resource_max
         ? Math.max(0, Math.min(1, game.resource_remaining / game.resource_max))
         : 0;
@@ -304,18 +340,41 @@ export default function Contact({ game: initialGame }) {
                             {hubOpen ? 'メニューを閉じる' : 'メニュー'}
                         </button>
                         {canDebug && (
-                            <button
-                                type="button"
-                                onClick={toggleDebug}
-                                aria-pressed={debugEnabled}
-                                className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                                    debugEnabled
-                                        ? 'bg-[#e0b15a] text-[#241c10]'
-                                        : 'bg-[#2a241c] text-[#b7ab96]'
-                                }`}
-                            >
-                                デバッグ {debugEnabled ? 'オン' : 'オフ'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <div className="flex rounded-full bg-[#2a241c] p-0.5" role="group" aria-label="連絡のAPI">
+                                    {[
+                                        ['gemini', 'Gemini'],
+                                        ['openrouter', 'OpenRouter'],
+                                    ].map(([value, label]) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => switchProvider(value)}
+                                            aria-pressed={llmProvider === value}
+                                            disabled={processing === 'provider'}
+                                            className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
+                                                llmProvider === value
+                                                    ? 'bg-[#e0b15a] text-[#241c10]'
+                                                    : 'text-[#b7ab96]'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={toggleDebug}
+                                    aria-pressed={debugEnabled}
+                                    className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
+                                        debugEnabled
+                                            ? 'bg-[#e0b15a] text-[#241c10]'
+                                            : 'bg-[#2a241c] text-[#b7ab96]'
+                                    }`}
+                                >
+                                    デバッグ {debugEnabled ? 'オン' : 'オフ'}
+                                </button>
+                            </div>
                         )}
                     </div>
 

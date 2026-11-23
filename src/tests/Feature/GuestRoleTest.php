@@ -40,7 +40,13 @@ class GuestRoleTest extends TestCase
                 ->component('Debug/Tourism')
                 ->where('recentSearches', [])
             );
-        $this->actingAs($guest)->get(route('debug.contact'))->assertOk();
+        $this->actingAs($guest)
+            ->get(route('debug.contact'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('llmProvider', null));
+        $this->actingAs($guest)
+            ->patchJson(route('debug.contact.provider'), ['provider' => 'openrouter'])
+            ->assertForbidden();
         $this->actingAs($guest)->get(route('dashboard'))->assertRedirect(route('debug.contact'));
 
         $this->actingAs($guest)->get(route('profile.edit'))->assertRedirect(route('debug.contact'));

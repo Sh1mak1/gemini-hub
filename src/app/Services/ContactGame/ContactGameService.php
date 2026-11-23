@@ -2,6 +2,7 @@
 
 namespace App\Services\ContactGame;
 
+use App\Models\AppSetting;
 use App\Models\ContactGame;
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
@@ -139,7 +140,7 @@ class ContactGameService
      */
     private function generate(string $prompt, array $responseSchema): array
     {
-        if (config('openrouter.contact_provider') === 'openrouter') {
+        if ($this->llmProvider() === 'openrouter') {
             return $this->openRouter->generateStructured($prompt, $responseSchema);
         }
 
@@ -148,6 +149,17 @@ class ContactGameService
             prompt: $prompt,
             responseSchema: $responseSchema,
         );
+    }
+
+    public function llmProvider(): string
+    {
+        $stored = AppSetting::getValue(AppSetting::CONTACT_LLM_PROVIDER);
+
+        if ($stored === 'openrouter' || $stored === 'gemini') {
+            return $stored;
+        }
+
+        return config('openrouter.contact_provider') === 'openrouter' ? 'openrouter' : 'gemini';
     }
 
     /**

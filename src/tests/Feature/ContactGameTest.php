@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Exceptions\GeminiApiException;
+use App\Models\AppSetting;
 use App\Models\ContactGame;
 use App\Models\User;
 use App\Services\Gemini\GeminiClient;
@@ -46,6 +47,7 @@ class ContactGameTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Debug/Contact')
                 ->where('game', null)
+                ->where('llmProvider', 'gemini')
             );
     }
 
@@ -445,6 +447,56 @@ class ContactGameTest extends TestCase
                 && ($request['reasoning']['enabled'] ?? null) === false;
         });
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'generativelanguage.googleapis.com'));
+    }
+
+    public function test_owner_switch_overrides_the_env_provider_for_the_next_turn(): void
+    {
+        Config::set('openrouter.contact_provider', 'gemini');
+        Config::set('openrouter.api_key', 'test-key');
+        Config::set('openrouter.model', 'google/gemini-2.5-flash-lite');
+        Config::set('openrouter.retry_delay_ms', 0);
+
+        $user = User::factory()->create();
+        $game = $this->ongoingGame($user, resourceRemaining: 8, progress: 0);
+
+        $this->actingAs($user)
+            ->patchJson(route('debug.contact.provider'), ['provider' => 'openrouter'])
+            ->assertOk()
+            ->assertJsonPath('provider', 'openrouter');
+
+        $this->assertSame('openrouter', AppSetting::getValue(AppSetting::CONTACT_LLM_PROVIDER));
+
+        Http::fake([
+            'openrouter.ai/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode([
+                            'reply' => '切り替えた先から返事が来た。',
+                            'resource_remaining' => 6,
+                            'change_note' => '風向きが変わった。',
+                            'status' => 'ongoing',
+                            'loss_reason' => '',
+                            'ending' => '',
+                            'hidden_progress' => 10,
+                            'hidden_misconception' => '',
+                            'hidden_intervention_1' => '',
+                            'hidden_intervention_2' => '',
+                            'hidden_intervention_3' => '',
+                            'hidden_doom' => '',
+                        ], JSON_UNESCAPED_UNICODE),
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('debug.contact.message', $game), [
+                'message' => '今のAPIで返事してくれ。',
+            ])
+            ->assertOk()
+            ->assertJsonPath('game.messages.2.text', '切り替えた先から返事が来た。');
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'openrouter.ai/api/v1/chat/completions'));
     }
 
     /**
