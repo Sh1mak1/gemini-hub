@@ -23,7 +23,7 @@ const TABS = [
     },
     {
         key: 'contact',
-        label: '一文連絡',
+        label: 'Stray Signal',
         href: () => route('debug.contact'),
     },
 ];
