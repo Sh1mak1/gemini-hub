@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ContactGameController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TaskController;
@@ -41,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/debug/database', [DebugController::class, 'database'])->name('debug.database');
     Route::get('/debug/tourism', [TourismTestController::class, 'index'])->name('debug.tourism');
     Route::post('/debug/tourism', [TourismTestController::class, 'search'])->name('debug.tourism.search');
+    Route::get('/debug/contact', [ContactGameController::class, 'index'])->name('debug.contact');
+    Route::post('/debug/contact', [ContactGameController::class, 'start'])->name('debug.contact.start');
+    Route::post('/debug/contact/{contactGame}/messages', [ContactGameController::class, 'message'])->name('debug.contact.message');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
